@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                       */
+/* ------------------------------------------------------------------ */
+@theme {
+  /* Brand — muted forest green (ported + extended from the original app) */
+  --color-brand-50: #eef1ec;
+  --color-brand-100: #d8e0d2;
+  --color-brand-200: #b6c4ab;
+  --color-brand-300: #91a583;
+  --color-brand-400: #6d855d;
+  --color-brand-500: #4a6741;
+  --color-brand-600: #3f5a36;
+  --color-brand-700: #374f2f;
+  --color-brand-800: #304529;
+  --color-brand-900: #22311d;
+
+  /* Surfaces & ink — warm paper aesthetic */
+  --color-paper: #faf9f6;
+  --color-surface: #ffffff;
+  --color-sand: #f1efe9;
+  --color-ink: #1c1c1a;
+  --color-muted: #6f6f68;
+  --color-faint: #9a9a92;
+  --color-line: #e7e5dd;
+  --color-today: #eef2e9;
+
+  /* Accents */
+  --color-btc: #f7931a;
+  --color-amber-soft: #f4ecd6;
+  --color-danger: #b4452f;
+
+  /* Type */
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-quote), Georgia, "Times New Roman", serif;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    height: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    background: var(--color-brand-200);
+  }
+  /* Inputs inherit the UI font and never trigger iOS zoom-on-focus */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-brand-300);
+  border-radius: 999px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* Soft entrance used when switching days / tabs */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-rise {
+  animation: fade-rise 240ms var(--ease-out-soft);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 180ms ease-out;
+}
+
+/* View Transition defaults — gentle cross-fade between tabs/views */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 220ms;
+  }
+}
