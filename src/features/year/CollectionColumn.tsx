@@ -66,7 +66,7 @@ export function CollectionColumn({
   const actions = (
     <div
       className={cn(
-        "flex items-center gap-0.5 opacity-0 transition-opacity group-hover/head:opacity-100",
+        "flex items-center gap-0.5",
         collection.bannerUrl ? "text-white/90" : "text-faint",
       )}
     >

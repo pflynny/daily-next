@@ -141,14 +141,14 @@ export function ListsPanel() {
               <button
                 onClick={() => lists.moveGroup(group.id, -1)}
                 aria-label="Move tab left"
-                className="text-faint opacity-0 hover:text-ink group-hover/tab:opacity-100"
+                className="text-faint hover:text-ink"
               >
                 <ChevronLeft size={12} />
               </button>
               <button
                 onClick={() => lists.moveGroup(group.id, 1)}
                 aria-label="Move tab right"
-                className="text-faint opacity-0 hover:text-ink group-hover/tab:opacity-100"
+                className="text-faint hover:text-ink"
               >
                 <ChevronRight size={12} />
               </button>
@@ -157,7 +157,7 @@ export function ListsPanel() {
                   setConfirm({ kind: "group", id: group.id, label: group.title })
                 }
                 aria-label="Delete tab"
-                className="text-faint opacity-0 hover:text-danger group-hover/tab:opacity-100"
+                className="text-faint hover:text-danger"
               >
                 <XIcon size={12} />
               </button>

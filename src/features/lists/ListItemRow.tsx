@@ -61,7 +61,7 @@ export function ListItemRow({
           {...attributes}
           {...listeners}
           aria-label="Drag item"
-          className="mt-0.5 shrink-0 touch-none text-line opacity-0 transition-opacity hover:text-faint group-hover:opacity-100"
+          className="hover-reveal mt-0.5 shrink-0 touch-none text-line hover:text-faint"
         >
           <GripIcon size={15} />
         </button>
@@ -114,9 +114,7 @@ export function ListItemRow({
         aria-label="Item options"
         className={cn(
           "mt-0.5 shrink-0 transition-opacity hover:text-ink",
-          item.notes
-            ? "text-brand-600 opacity-100"
-            : "text-faint opacity-0 group-hover:opacity-100",
+          item.notes ? "text-brand-600" : "hover-reveal text-faint",
         )}
       >
         <NoteIcon size={14} />

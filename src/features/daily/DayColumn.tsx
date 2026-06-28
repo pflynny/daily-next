@@ -19,6 +19,7 @@ interface DayColumnProps {
   onToggle: (task: Task) => void;
   onUpdateText: (task: Task, text: string) => void;
   onOpenDetail: (task: Task) => void;
+  onDelete: (task: Task) => void;
 }
 
 export function DayColumn({
@@ -29,6 +30,7 @@ export function DayColumn({
   onToggle,
   onUpdateText,
   onOpenDetail,
+  onDelete,
 }: DayColumnProps) {
   const isToday = dateKey === todayKey();
   const label = dayLabelFromKey(dateKey);
@@ -87,6 +89,7 @@ export function DayColumn({
               onToggle={onToggle}
               onUpdateText={onUpdateText}
               onOpenDetail={onOpenDetail}
+              onDelete={onDelete}
             />
           ))}
         </SortableContext>
@@ -115,6 +118,7 @@ export function DayColumn({
                 onToggle={onToggle}
                 onUpdateText={onUpdateText}
                 onOpenDetail={onOpenDetail}
+                onDelete={onDelete}
               />
             ))}
           </div>

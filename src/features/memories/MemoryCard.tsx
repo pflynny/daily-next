@@ -60,7 +60,7 @@ export function MemoryCard({
         <span className="text-[11px] font-semibold uppercase tracking-wide">
           {shortDate(memory.occurredOn)}
         </span>
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="ml-auto flex items-center gap-0.5 hover-reveal">
           <button
             onClick={() => onEdit(memory)}
             aria-label="Edit memory"

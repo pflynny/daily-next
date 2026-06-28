@@ -226,6 +226,7 @@ export function DailyView() {
                   onToggle={toggleTask}
                   onUpdateText={(t, text) => updateTask(t, { text })}
                   onOpenDetail={setDetailTask}
+                  onDelete={(t) => deleteTask(t.id)}
                 />
               );
             })}
@@ -262,6 +263,7 @@ export function DailyView() {
                     onToggle={toggleTask}
                     onUpdateText={(t, text) => updateTask(t, { text })}
                     onOpenDetail={setDetailTask}
+                    onDelete={(t) => deleteTask(t.id)}
                   />
                 );
               })()}

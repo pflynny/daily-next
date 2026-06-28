@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
-import { CheckIcon, GripIcon, NoteIcon } from "@/shared/ui/icons";
+import { CheckIcon, GripIcon, NoteIcon, XIcon } from "@/shared/ui/icons";
 import type { Task } from "@/types";
 
 interface TaskRowProps {
@@ -13,6 +13,7 @@ interface TaskRowProps {
   onToggle: (task: Task) => void;
   onUpdateText: (task: Task, text: string) => void;
   onOpenDetail: (task: Task) => void;
+  onDelete: (task: Task) => void;
 }
 
 export function TaskRow({
@@ -21,6 +22,7 @@ export function TaskRow({
   onToggle,
   onUpdateText,
   onOpenDetail,
+  onDelete,
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
@@ -38,10 +40,7 @@ export function TaskRow({
     disabled: !sortable || editing,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = { transform: CSS.Transform.toString(transform), transition };
 
   function commit() {
     setEditing(false);
@@ -50,26 +49,48 @@ export function TaskRow({
     else setDraft(task.text);
   }
 
+  const actions = (
+    <div className="absolute right-0.5 top-1 flex items-center gap-0.5">
+      <button
+        onClick={() => onOpenDetail(task)}
+        aria-label="Task details"
+        className={cn(
+          "rounded p-1 transition-colors hover:text-ink",
+          task.notes ? "text-brand-600" : "hover-reveal text-faint",
+        )}
+      >
+        <NoteIcon size={15} />
+      </button>
+      {sortable && (
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Drag task"
+          className="hover-reveal cursor-grab touch-none rounded p-1 text-faint hover:text-ink active:cursor-grabbing"
+        >
+          <GripIcon size={15} />
+        </button>
+      )}
+      <button
+        onClick={() => onDelete(task)}
+        aria-label="Delete task"
+        className="hover-reveal rounded p-1 text-faint hover:text-danger"
+      >
+        <XIcon size={15} />
+      </button>
+    </div>
+  );
+
   if (task.isLabel) {
     return (
       <div
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group flex items-center gap-1.5 px-4 py-2",
+          "group relative py-2 pl-4 pr-16",
           isDragging && "opacity-50",
         )}
       >
-        {sortable && (
-          <button
-            {...attributes}
-            {...listeners}
-            aria-label="Drag heading"
-            className="touch-none text-line opacity-0 transition-opacity hover:text-faint group-hover:opacity-100"
-          >
-            <GripIcon size={16} />
-          </button>
-        )}
         {editing ? (
           <input
             autoFocus
@@ -83,7 +104,7 @@ export function TaskRow({
                 setEditing(false);
               }
             }}
-            className="flex-1 bg-transparent text-xs font-bold uppercase tracking-wide text-brand-700 outline-none"
+            className="w-full bg-transparent text-xs font-bold uppercase tracking-wide text-brand-700 outline-none"
           />
         ) : (
           <button
@@ -91,18 +112,12 @@ export function TaskRow({
               setDraft(task.text);
               setEditing(true);
             }}
-            className="flex-1 text-left text-xs font-bold uppercase tracking-wide text-brand-700"
+            className="block w-full text-left text-xs font-bold uppercase tracking-wide text-brand-700"
           >
             {task.text}
           </button>
         )}
-        <button
-          onClick={() => onOpenDetail(task)}
-          aria-label="Task options"
-          className="text-faint opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
-        >
-          <NoteIcon size={15} />
-        </button>
+        {actions}
       </div>
     );
   }
@@ -112,29 +127,18 @@ export function TaskRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-start gap-1.5 px-4 py-1.5",
+        "group relative py-1.5 pl-9 pr-16",
         isDragging && "opacity-50",
       )}
     >
-      {sortable && (
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Drag task"
-          className="mt-0.5 shrink-0 touch-none text-line opacity-0 transition-opacity hover:text-faint group-hover:opacity-100"
-        >
-          <GripIcon size={16} />
-        </button>
-      )}
-
       <button
         onClick={() => onToggle(task)}
         aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
-          "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors",
+          "absolute left-3 top-1.5 flex size-[18px] items-center justify-center rounded-[5px] border transition-colors",
           task.completed
             ? "border-brand-500 bg-brand-500 text-white"
-            : "border-line text-transparent hover:border-brand-400",
+            : "border-line text-transparent hover:border-brand-400 hover-reveal",
         )}
       >
         <CheckIcon size={12} />
@@ -153,7 +157,7 @@ export function TaskRow({
               setEditing(false);
             }
           }}
-          className="flex-1 bg-transparent text-sm leading-snug outline-none"
+          className="w-full bg-transparent text-sm leading-snug outline-none"
         />
       ) : (
         <button
@@ -162,7 +166,7 @@ export function TaskRow({
             setEditing(true);
           }}
           className={cn(
-            "flex-1 break-words text-left text-sm leading-snug [overflow-wrap:anywhere]",
+            "block w-full break-words text-left text-sm leading-snug [overflow-wrap:anywhere]",
             task.completed ? "text-faint line-through" : "text-ink",
           )}
         >
@@ -170,18 +174,7 @@ export function TaskRow({
         </button>
       )}
 
-      <button
-        onClick={() => onOpenDetail(task)}
-        aria-label="Task options"
-        className={cn(
-          "mt-0.5 shrink-0 transition-opacity hover:text-ink",
-          task.notes
-            ? "text-brand-600 opacity-100"
-            : "text-faint opacity-0 group-hover:opacity-100",
-        )}
-      >
-        <NoteIcon size={15} />
-      </button>
+      {actions}
     </div>
   );
 }

@@ -80,7 +80,7 @@ export function ListColumn({
             <span className="text-faint">{list.items.length}</span>
           </button>
         )}
-        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/head:opacity-100">
+        <div className="flex items-center gap-0.5 text-faint">
           <button
             onClick={() => onMove(list.id, -1)}
             disabled={isFirst}
