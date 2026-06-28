@@ -51,13 +51,18 @@ export function useCollections() {
 
   const deleteCollection = useCallback(
     (collectionId: string) => {
-      const itemIds = collectionItems
-        .filter((i) => i.collectionId === collectionId)
-        .map((i) => i.id);
-      if (itemIds.length) del("collectionItems", itemIds);
+      const collection = collections.find((c) => c.id === collectionId);
+      const items = collectionItems.filter(
+        (i) => i.collectionId === collectionId,
+      );
+      if (items.length) del("collectionItems", items.map((i) => i.id));
       del("collections", [collectionId]);
+      return () => {
+        if (collection) put("collections", [collection]);
+        if (items.length) put("collectionItems", items);
+      };
     },
-    [collectionItems, del],
+    [collections, collectionItems, del, put],
   );
 
   const moveCollection = useCallback(
@@ -106,8 +111,14 @@ export function useCollections() {
   );
 
   const deleteItem = useCallback(
-    (id: string) => del("collectionItems", [id]),
-    [del],
+    (id: string) => {
+      const item = collectionItems.find((i) => i.id === id);
+      del("collectionItems", [id]);
+      return () => {
+        if (item) put("collectionItems", [item]);
+      };
+    },
+    [collectionItems, del, put],
   );
 
   return {

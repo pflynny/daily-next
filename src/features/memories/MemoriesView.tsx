@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { useToast } from "@/shared/ui/ToastProvider";
 import { ImagesIcon, PlusIcon } from "@/shared/ui/icons";
 import { cn } from "@/lib/utils/cn";
 import { useMemories } from "./useMemories";
@@ -24,6 +25,7 @@ const FILTERS: { value: "all" | MemoryType; label: string }[] = [
 export function MemoriesView() {
   const { byYear, timeline, addMemory, updateMemory, deleteMemory } =
     useMemories();
+  const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<"all" | MemoryType>("all");
   const [editMemory, setEditMemory] = useState<Memory | null>(null);
@@ -137,7 +139,10 @@ export function MemoriesView() {
         message="This will permanently remove it from your timeline."
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
-          if (confirmDelete) deleteMemory(confirmDelete.id);
+          if (confirmDelete) {
+            const restore = deleteMemory(confirmDelete.id);
+            toast.undo("Memory deleted", restore);
+          }
           setConfirmDelete(null);
         }}
       />

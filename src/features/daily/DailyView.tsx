@@ -33,6 +33,7 @@ import {
 import { useIsDesktop } from "@/shared/hooks/useMediaQuery";
 import { useAppData } from "@/state/AppDataProvider";
 import { Sheet } from "@/shared/ui/Sheet";
+import { useToast } from "@/shared/ui/ToastProvider";
 import { ListsPanel } from "@/features/lists/ListsPanel";
 import { QuotePanel } from "@/features/panel/QuotePanel";
 import { useTasks } from "./useTasks";
@@ -62,8 +63,14 @@ export function DailyView() {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const { settings, setSettings } = useAppData();
+  const toast = useToast();
   const showLists = settings.showLists;
   const showPanel = settings.showPanel;
+
+  const handleDeleteTask = (t: Task) => {
+    const restore = deleteTask(t.id);
+    toast.undo("Task deleted", restore);
+  };
   const toggleLists = () =>
     isDesktop ? setSettings({ showLists: !showLists }) : setListsSheet(true);
 
@@ -226,7 +233,7 @@ export function DailyView() {
                   onToggle={toggleTask}
                   onUpdateText={(t, text) => updateTask(t, { text })}
                   onOpenDetail={setDetailTask}
-                  onDelete={(t) => deleteTask(t.id)}
+                  onDelete={handleDeleteTask}
                 />
               );
             })}
@@ -263,7 +270,7 @@ export function DailyView() {
                     onToggle={toggleTask}
                     onUpdateText={(t, text) => updateTask(t, { text })}
                     onOpenDetail={setDetailTask}
-                    onDelete={(t) => deleteTask(t.id)}
+                    onDelete={handleDeleteTask}
                   />
                 );
               })()}
@@ -322,7 +329,7 @@ export function DailyView() {
           setDetailTask((cur) => (cur ? { ...cur, ...patch } : cur));
         }}
         onMoveDate={(t, toKey) => updateTask(t, { date: toKey })}
-        onDelete={(t) => deleteTask(t.id)}
+        onDelete={handleDeleteTask}
       />
     </div>
   );

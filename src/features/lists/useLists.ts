@@ -36,14 +36,20 @@ export function useLists() {
 
   const deleteGroup = useCallback(
     (groupId: string) => {
+      const group = listGroups.find((g) => g.id === groupId);
       const childLists = lists.filter((l) => l.groupId === groupId);
       const childListIds = new Set(childLists.map((l) => l.id));
       const childItems = listItems.filter((i) => childListIds.has(i.listId));
       if (childItems.length) del("listItems", childItems.map((i) => i.id));
       if (childLists.length) del("lists", childLists.map((l) => l.id));
       del("listGroups", [groupId]);
+      return () => {
+        if (group) put("listGroups", [group]);
+        if (childLists.length) put("lists", childLists);
+        if (childItems.length) put("listItems", childItems);
+      };
     },
-    [lists, listItems, del],
+    [listGroups, lists, listItems, del, put],
   );
 
   const moveGroup = useCallback(
@@ -82,11 +88,16 @@ export function useLists() {
 
   const deleteList = useCallback(
     (listId: string) => {
+      const list = lists.find((l) => l.id === listId);
       const childItems = listItems.filter((i) => i.listId === listId);
       if (childItems.length) del("listItems", childItems.map((i) => i.id));
       del("lists", [listId]);
+      return () => {
+        if (list) put("lists", [list]);
+        if (childItems.length) put("listItems", childItems);
+      };
     },
-    [listItems, del],
+    [lists, listItems, del, put],
   );
 
   const moveList = useCallback(
@@ -151,9 +162,13 @@ export function useLists() {
 
   const deleteItem = useCallback(
     (id: string) => {
+      const item = listItems.find((i) => i.id === id);
       del("listItems", [id]);
+      return () => {
+        if (item) put("listItems", [item]);
+      };
     },
-    [del],
+    [listItems, del, put],
   );
 
   const reorderItems = useCallback(

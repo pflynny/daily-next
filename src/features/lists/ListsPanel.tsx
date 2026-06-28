@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils/cn";
 import { todayKey } from "@/lib/utils/date";
 import { Sheet } from "@/shared/ui/Sheet";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { useToast } from "@/shared/ui/ToastProvider";
 import { ChevronLeft, ChevronRight, PlusIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
 import { useTasks } from "@/features/daily/useTasks";
 import { useLists } from "./useLists";
@@ -25,6 +26,7 @@ import type { ListItem } from "@/types";
 export function ListsPanel() {
   const lists = useLists();
   const { addTask } = useTasks();
+  const toast = useToast();
   const { groups } = lists;
 
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
@@ -248,7 +250,8 @@ export function ListsPanel() {
             <div className="flex items-center justify-between">
               <button
                 onClick={() => {
-                  lists.deleteItem(detailItem.id);
+                  const restore = lists.deleteItem(detailItem.id);
+                  toast.undo("Item deleted", restore);
                   setDetailItem(null);
                 }}
                 className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-danger hover:bg-danger/10"
@@ -321,8 +324,13 @@ export function ListsPanel() {
         }
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
-          if (confirm?.kind === "group") lists.deleteGroup(confirm.id);
-          else if (confirm?.kind === "list") lists.deleteList(confirm.id);
+          if (confirm?.kind === "group") {
+            const restore = lists.deleteGroup(confirm.id);
+            toast.undo("Tab deleted", restore);
+          } else if (confirm?.kind === "list") {
+            const restore = lists.deleteList(confirm.id);
+            toast.undo("List deleted", restore);
+          }
           setConfirm(null);
         }}
       />

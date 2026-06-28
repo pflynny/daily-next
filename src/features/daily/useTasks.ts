@@ -100,9 +100,13 @@ export function useTasks() {
 
   const deleteTask = useCallback(
     (id: string) => {
+      const task = tasks.find((t) => t.id === id);
       del("tasks", [id]);
+      return () => {
+        if (task) put("tasks", [task]);
+      };
     },
-    [del],
+    [tasks, del, put],
   );
 
   const reorderIncomplete = useCallback(

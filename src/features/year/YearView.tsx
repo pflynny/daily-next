@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { useToast } from "@/shared/ui/ToastProvider";
 import { cn } from "@/lib/utils/cn";
 import { ChevronLeft, StackIcon, StarIcon } from "@/shared/ui/icons";
 import { useCollections } from "./useCollections";
@@ -15,6 +16,7 @@ const STARTERS = ["Books", "Movies", "TV Shows", "Music"];
 
 export function YearView() {
   const col = useCollections();
+  const toast = useToast();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [sort, setSort] = useState<"added" | "rating">("added");
@@ -135,7 +137,10 @@ export function YearView() {
           col.updateItem(item, patch);
           setDetailItem((cur) => (cur ? { ...cur, ...patch } : cur));
         }}
-        onDelete={(item) => col.deleteItem(item.id)}
+        onDelete={(item) => {
+          const restore = col.deleteItem(item.id);
+          toast.undo("Entry deleted", restore);
+        }}
       />
 
       <ConfirmDialog
@@ -148,7 +153,10 @@ export function YearView() {
         }
         onCancel={() => setConfirmCollection(null)}
         onConfirm={() => {
-          if (confirmCollection) col.deleteCollection(confirmCollection.id);
+          if (confirmCollection) {
+            const restore = col.deleteCollection(confirmCollection.id);
+            toast.undo("List deleted", restore);
+          }
           setConfirmCollection(null);
         }}
       />

@@ -82,13 +82,16 @@ export function useMemories() {
 
   const deleteMemory = useCallback(
     (memoryId: string) => {
-      const mediaIds = memoryMedia
-        .filter((m) => m.memoryId === memoryId)
-        .map((m) => m.id);
-      if (mediaIds.length) del("memoryMedia", mediaIds);
+      const memory = memories.find((m) => m.id === memoryId);
+      const media = memoryMedia.filter((m) => m.memoryId === memoryId);
+      if (media.length) del("memoryMedia", media.map((m) => m.id));
       del("memories", [memoryId]);
+      return () => {
+        if (memory) put("memories", [memory]);
+        if (media.length) put("memoryMedia", media);
+      };
     },
-    [memoryMedia, del],
+    [memories, memoryMedia, del, put],
   );
 
   return { timeline, byYear, addMemory, updateMemory, deleteMemory };

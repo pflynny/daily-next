@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ChevronLeft, ChevronRight, PlusIcon, TargetIcon } from "@/shared/ui/icons";
+import { useToast } from "@/shared/ui/ToastProvider";
 import { useGoals } from "./useGoals";
 import { GoalCard } from "./GoalCard";
 import { GoalFormSheet } from "./GoalFormSheet";
@@ -11,6 +12,7 @@ import type { Goal } from "@/types";
 
 export function GoalsView() {
   const goals = useGoals();
+  const toast = useToast();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [formOpen, setFormOpen] = useState(false);
@@ -109,7 +111,10 @@ export function GoalsView() {
           if (editGoal) goals.updateGoal(editGoal, input);
           else goals.addGoal(input);
         }}
-        onDelete={(g) => goals.deleteGoal(g.id)}
+        onDelete={(g) => {
+          const restore = goals.deleteGoal(g.id);
+          toast.undo("Goal deleted", restore);
+        }}
       />
     </div>
   );

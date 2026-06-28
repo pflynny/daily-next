@@ -90,13 +90,16 @@ export function useGoals() {
 
   const deleteGoal = useCallback(
     (goalId: string) => {
-      const entryIds = goalEntries
-        .filter((e) => e.goalId === goalId)
-        .map((e) => e.id);
-      if (entryIds.length) del("goalEntries", entryIds);
+      const goal = goals.find((g) => g.id === goalId);
+      const entries = goalEntries.filter((e) => e.goalId === goalId);
+      if (entries.length) del("goalEntries", entries.map((e) => e.id));
       del("goals", [goalId]);
+      return () => {
+        if (goal) put("goals", [goal]);
+        if (entries.length) put("goalEntries", entries);
+      };
     },
-    [goalEntries, del],
+    [goals, goalEntries, del, put],
   );
 
   const moveGoal = useCallback(
