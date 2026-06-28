@@ -29,7 +29,7 @@ export function useCollections() {
       if (!trimmed) return;
       const count = collections.filter((c) => c.year === year).length;
       put("collections", [
-        { id: newId(), year, name: trimmed, position: count },
+        { id: newId(), year, name: trimmed, position: count, bannerUrl: null },
       ]);
     },
     [collections, put],
@@ -40,6 +40,12 @@ export function useCollections() {
       const trimmed = name.trim();
       if (trimmed) put("collections", [{ ...collection, name: trimmed }]);
     },
+    [put],
+  );
+
+  const setBanner = useCallback(
+    (collection: Collection, bannerUrl: string | null) =>
+      put("collections", [{ ...collection, bannerUrl }]),
     [put],
   );
 
@@ -109,6 +115,7 @@ export function useCollections() {
     forYear,
     addCollection,
     renameCollection,
+    setBanner,
     deleteCollection,
     moveCollection,
     addItem,

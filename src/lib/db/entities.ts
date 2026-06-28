@@ -155,12 +155,14 @@ export const ENTITIES: Record<StateKey, EntityConfig> = {
       year: c.year,
       name: c.name,
       position: c.position,
+      banner_url: c.bannerUrl,
     }),
     fromRow: (r): Collection => ({
       id: str(r.id),
       year: num(r.year),
       name: str(r.name),
       position: num(r.position),
+      bannerUrl: r.banner_url ?? null,
     }),
   },
   collectionItems: {

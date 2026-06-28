@@ -70,6 +70,8 @@ export interface Collection {
   year: number;
   name: string;
   position: number;
+  /** Optional banner image shown at the top of the list. */
+  bannerUrl: string | null;
 }
 
 export interface CollectionView extends Collection {

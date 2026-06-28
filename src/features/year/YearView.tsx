@@ -107,6 +107,7 @@ export function YearView() {
                 onMove={(id, dir) => col.moveCollection(selectedYear, id, dir)}
                 onAddItem={col.addItem}
                 onOpenItem={setDetailItem}
+                onSetBanner={col.setBanner}
               />
             ))}
             <div className="shrink-0 md:w-[200px]">

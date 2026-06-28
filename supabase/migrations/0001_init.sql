@@ -73,6 +73,7 @@ create table if not exists collections (
   year integer not null,
   name text not null default '',
   position integer not null default 0,
+  banner_url text,
   created_at timestamptz not null default now()
 );
 create index if not exists idx_collections_user_year on collections (user_id, year, position);
