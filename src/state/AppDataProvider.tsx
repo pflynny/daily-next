@@ -118,9 +118,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = cloud ? getBrowserClient() : null;
   const supabaseRef = useRef(supabase);
-  supabaseRef.current = supabase;
   const userIdRef = useRef(userId);
-  userIdRef.current = userId;
+  // Keep refs current for the stable put/del/setSettings callbacks. Updated in
+  // an effect (never during render) so reads stay pure.
+  useEffect(() => {
+    supabaseRef.current = supabase;
+    userIdRef.current = userId;
+  });
 
   // ---- Load ----------------------------------------------------------------
   useEffect(() => {

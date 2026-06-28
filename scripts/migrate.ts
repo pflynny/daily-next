@@ -10,6 +10,7 @@
  *   4. npm run migrate -- path/to/backup.json          (insert)
  *      npm run migrate -- path/to/backup.json --dry-run (preview counts)
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";

@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Daily
 
-## Getting Started
+A calm, personal app for your **days, goals, memories, year and a year-in-review**.
+A ground-up rebuild of the original `daily` app.
 
-First, run the development server:
+- **Daily** — 5 days across on desktop, one swipeable day on mobile. Add / reorder
+  (drag, touch-friendly) / complete / note tasks. Incomplete tasks carry to today.
+- **Goals** — daily habits (GitHub-style year grid) **and** weekly/monthly targets
+  ("3 workouts a week") you tick off, with progress + history.
+- **Memories** — a timeline grouped by year. Capture notes, quotes, photos, videos
+  or links. Filter by type.
+- **Year** — per-year collections (Books / Movies / TV …) with title, creator,
+  rating and review, plus an optional cover photo per list.
+- **Wrapped** — an editorial year-in-review pulled from everything above.
+- **Settings** — sync status, preferences, backup export/import, liked quotes.
+
+## Stack
+
+- Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4
+- Supabase (auth + Postgres, row-level security) — canonical data store
+- Cloudflare R2 (S3-compatible) — photo/video storage via presigned uploads
+- dnd-kit — drag-and-drop
+
+If Supabase isn't configured, the app runs in **local/guest mode** (data in
+`localStorage`), which is handy for development.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env   # fill in the values below
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 1. Supabase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a new Supabase project.
+2. Run `supabase/migrations/0001_init.sql` in the SQL editor (or `supabase db push`).
+3. Put the project URL + anon key in `.env`:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-only, used by the migration script)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Cloudflare R2 (media)
 
-## Learn More
+1. Create an R2 bucket and an S3 API token (access key + secret).
+2. Enable public access (an `r2.dev` URL or a custom domain).
+3. Fill `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
+   `R2_ENDPOINT`, and `NEXT_PUBLIC_R2_PUBLIC_HOST` in `.env`.
 
-To learn more about Next.js, take a look at the following resources:
+Uploads fall back to inline data URLs when R2 isn't configured, so the timeline
+still works locally.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Migrating data from the old app
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Sign up in this app so your account exists.
+2. In the **old** app: Settings → Export Full Backup (a JSON file).
+3. Set `MIGRATE_USER_EMAIL` (or `MIGRATE_USER_ID`) in `.env`.
+4. Preview, then run:
 
-## Deploy on Vercel
+```bash
+npm run migrate -- path/to/backup.json --dry-run   # counts only
+npm run migrate -- path/to/backup.json             # insert
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev        # dev server
+npm run build      # production build
+npm run lint       # eslint
+npm run typecheck  # tsc --noEmit
+npm run migrate    # data migration (see above)
+```

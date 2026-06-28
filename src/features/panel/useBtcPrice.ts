@@ -23,9 +23,8 @@ async function fetchPrice(signal: AbortSignal): Promise<number> {
 }
 
 export function useBtcPrice() {
-  const [price, setPrice] = useState<number | null>(
-    cache && Date.now() - cache.ts < TTL ? cache.price : null,
-  );
+  // Seed from cache for an instant paint; the effect validates freshness.
+  const [price, setPrice] = useState<number | null>(cache ? cache.price : null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
