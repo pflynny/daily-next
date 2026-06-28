@@ -27,12 +27,14 @@ import {
   ChevronsRight,
   ChevronDown,
   ListIcon,
+  QuoteIcon,
   TodayIcon,
 } from "@/shared/ui/icons";
 import { useIsDesktop } from "@/shared/hooks/useMediaQuery";
 import { useAppData } from "@/state/AppDataProvider";
 import { Sheet } from "@/shared/ui/Sheet";
 import { ListsPanel } from "@/features/lists/ListsPanel";
+import { QuotePanel } from "@/features/panel/QuotePanel";
 import { useTasks } from "./useTasks";
 import { DayColumn } from "./DayColumn";
 import { TaskDetailSheet } from "./TaskDetailSheet";
@@ -61,6 +63,7 @@ export function DailyView() {
 
   const { settings, setSettings } = useAppData();
   const showLists = settings.showLists;
+  const showPanel = settings.showPanel;
   const toggleLists = () =>
     isDesktop ? setSettings({ showLists: !showLists }) : setListsSheet(true);
 
@@ -293,6 +296,20 @@ export function DailyView() {
             <ListsPanel />
           </div>
         </Sheet>
+      )}
+
+      {/* Quote + BTC panel */}
+      {showPanel ? (
+        <div className="flex-none">
+          <QuotePanel onCollapse={() => setSettings({ showPanel: false })} />
+        </div>
+      ) : (
+        <button
+          onClick={() => setSettings({ showPanel: true })}
+          className="flex flex-none items-center justify-center gap-1.5 border-t border-line bg-paper py-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint hover:text-ink"
+        >
+          <QuoteIcon size={13} /> Quote &amp; price
+        </button>
       )}
 
       <TaskDetailSheet
