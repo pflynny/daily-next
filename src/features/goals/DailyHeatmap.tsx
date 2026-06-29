@@ -5,20 +5,20 @@ import { toDateKey, todayKey } from "@/lib/utils/date";
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Fern palette — lightest Jan → darkest Dec for a smooth year-long transition
+// Light pastels → vivid mids → deep forest darks
 const MONTH_COLOR = [
-  "#A8CBA5", // Jan  Fern Mist
-  "#97B69D", // Feb  Soft Fern
-  "#8DAE86", // Mar  Fern Shade
-  "#81A282", // Apr  Fern Meadow
-  "#7FA074", // May  Fern Glade
-  "#76A376", // Jun  Light Fern
-  "#709D6E", // Jul  Fresh Fern
-  "#6D8E68", // Aug  Fern Leaf
-  "#5C8A59", // Sep  Wild Fern
-  "#557B53", // Oct  Deep Fern
-  "#4A704D", // Nov  Forest Fern
-  "#3A5F0B", // Dec  Dark Fern
+  "#98FF98", // Jan  Mint Green      — very light, fresh
+  "#93E9BE", // Feb  Seafoam Green   — light aqua-green
+  "#93C572", // Mar  Pistachio       — warm light green
+  "#9CAFB8", // Apr  Sage Green      — cool grey-green
+  "#8A9A5B", // May  Moss Green      — earthy medium
+  "#50C878", // Jun  Emerald Green   — vibrant jewel
+  "#4CBB17", // Jul  Kelly Green     — vivid pure grass
+  "#32CD32", // Aug  Lime Green      — electric bright
+  "#556B2F", // Sep  Olive Green     — earthy, darkening
+  "#355E3B", // Oct  Hunter Green    — heritage dark
+  "#4A704D", // Nov  Deep Forest     — rich dark green
+  "#014421", // Dec  Forest Green    — deepest
 ];
 
 const CELL = 10;
