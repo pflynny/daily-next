@@ -8,6 +8,7 @@ import { TrashIcon, UploadIcon } from "@/shared/ui/icons";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useAppData } from "@/state/AppDataProvider";
 import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
+import { InstallButton } from "./InstallButton";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
 
 function Section({
@@ -195,6 +196,11 @@ export function SettingsView() {
             {importMsg && (
               <p className="mt-2 text-xs text-brand-700">{importMsg}</p>
             )}
+          </Section>
+
+          {/* App */}
+          <Section title="App">
+            <InstallButton />
           </Section>
 
           {/* Integrations */}
