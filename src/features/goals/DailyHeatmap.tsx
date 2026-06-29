@@ -5,6 +5,13 @@ import { toDateKey, todayKey } from "@/lib/utils/date";
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+// Gentle hue cycle: blue → teal → lime → gold → coral → rose → violet → indigo
+const MONTH_HUE = [220, 200, 172, 145, 105, 58, 30, 10, 350, 315, 278, 248];
+
+const CELL = 10;
+const GAP = 2;
+const STRIDE = CELL + GAP;
+
 interface DailyHeatmapProps {
   year: number;
   counts: Map<string, number>;
@@ -13,79 +20,120 @@ interface DailyHeatmapProps {
   max?: number;
 }
 
-function intensityClass(value: number, max: number): string {
-  if (value <= 0) return "bg-sand";
-  const ratio = max > 0 ? value / max : 0;
-  if (ratio >= 0.75) return "bg-brand-700";
-  if (ratio >= 0.5) return "bg-brand-600";
-  if (ratio >= 0.25) return "bg-brand-500";
-  return "bg-brand-300";
+function addDays(base: Date, n: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + n);
+  return d;
 }
 
-export function DailyHeatmap({
-  year,
-  counts,
-  onToggleDay,
-  mode = "binary",
-  max = 1,
-}: DailyHeatmapProps) {
+export function DailyHeatmap({ year, counts, onToggleDay, mode = "binary", max = 1 }: DailyHeatmapProps) {
   const today = todayKey();
 
-  const monthGroups = Array.from({ length: 12 }, (_, m) => {
-    const daysInMonth = new Date(year, m + 1, 0).getDate();
-    const days: Date[] = Array.from(
-      { length: daysInMonth },
-      (_, d) => new Date(year, m, d + 1),
-    );
-    const firstDay = days[0].getDay();
-    const cells: (Date | null)[] = [
-      ...Array.from({ length: firstDay }, () => null),
-      ...days,
-    ];
-    return { month: m, cells };
+  const jan1 = new Date(year, 0, 1);
+  const dec31 = new Date(year, 11, 31);
+  const startDow = jan1.getDay();
+  const endDow = dec31.getDay();
+
+  // Grid bounds: Sunday on/before Jan 1 → Saturday on/after Dec 31
+  const gridStart = addDays(jan1, -startDow);
+  const lastWeekStart = addDays(dec31, -endDow);
+  const totalCols = Math.round((lastWeekStart.getTime() - gridStart.getTime()) / (7 * 86400000)) + 1;
+
+  function colOf(d: Date): number {
+    return Math.floor((d.getTime() - gridStart.getTime()) / (7 * 86400000));
+  }
+
+  // All cells in column-major order (col 0 dow 0-6, col 1 dow 0-6, …)
+  const cells: { date: Date | null; month: number }[] = [];
+  for (let col = 0; col < totalCols; col++) {
+    for (let dow = 0; dow < 7; dow++) {
+      const d = addDays(gridStart, col * 7 + dow);
+      cells.push(d.getFullYear() === year ? { date: d, month: d.getMonth() } : { date: null, month: -1 });
+    }
+  }
+
+  // Month label widths — each month occupies from its 1st to the next month's 1st
+  const monthSpans = Array.from({ length: 12 }, (_, m) => {
+    const sc = colOf(new Date(year, m, 1));
+    const ec = m < 11 ? colOf(new Date(year, m + 1, 1)) : totalCols;
+    return { label: MONTH_LABELS[m], width: (ec - sc) * STRIDE };
   });
 
   return (
     <div className="overflow-x-auto">
-      <div className="inline-flex gap-3">
-        {monthGroups.map(({ month, cells }) => (
-          <div key={month} className="flex flex-col gap-1">
-            <span className="text-[9px] font-medium uppercase tracking-wide text-faint">
-              {MONTH_LABELS[month]}
+      <div className="inline-flex flex-col" style={{ gap: 4 }}>
+        {/* Month labels row — no gaps, spans mirror the grid columns */}
+        <div className="flex">
+          {monthSpans.map(({ label, width }, m) => (
+            <span
+              key={m}
+              style={{ width, minWidth: 0 }}
+              className="overflow-hidden truncate text-[9px] font-medium uppercase tracking-wide text-faint"
+            >
+              {label}
             </span>
-            <div className="grid grid-flow-col grid-rows-7 auto-cols-[10px] gap-[2px]">
-              {cells.map((date, i) => {
-                if (!date) return <span key={`b${month}-${i}`} className="size-[10px]" />;
-                const key = toDateKey(date);
-                const value = counts.get(key) ?? 0;
-                const filled = value > 0;
-                const isToday = key === today;
-                const color =
-                  mode === "intensity"
-                    ? intensityClass(value, max)
-                    : filled
-                      ? "bg-brand-500"
-                      : "bg-sand hover:bg-brand-200";
-                const cls = cn(
-                  "size-[10px] rounded-[2px] transition-colors",
-                  color,
-                  isToday && "ring-1 ring-ink/40",
-                );
-                return onToggleDay ? (
-                  <button
-                    key={key}
-                    onClick={() => onToggleDay(key)}
-                    title={`${date.toLocaleDateString()}${filled ? " · done" : ""}`}
-                    aria-label={`Toggle ${date.toLocaleDateString()}`}
-                    className={cls}
-                  />
-                ) : (
-                  <span key={key} title={date.toLocaleDateString()} className={cls} />
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* Continuous year grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: `repeat(7, ${CELL}px)`,
+            gridAutoFlow: "column",
+            gridAutoColumns: CELL,
+            gap: GAP,
+          }}
+        >
+          {cells.map((cell, i) => {
+            if (!cell.date) {
+              return <span key={i} style={{ width: CELL, height: CELL }} />;
+            }
+
+            const key = toDateKey(cell.date);
+            const value = counts.get(key) ?? 0;
+            const filled = value > 0;
+            const isToday = key === today;
+            const hue = MONTH_HUE[cell.month];
+
+            let bgColor: string | undefined;
+            if (filled) {
+              if (mode === "intensity") {
+                const ratio = max > 0 ? value / max : 0;
+                const l = ratio >= 0.75 ? 40 : ratio >= 0.5 ? 48 : ratio >= 0.25 ? 56 : 66;
+                bgColor = `hsl(${hue},58%,${l}%)`;
+              } else {
+                bgColor = `hsl(${hue},58%,60%)`;
+              }
+            }
+
+            const style: React.CSSProperties = {
+              width: CELL,
+              height: CELL,
+              borderRadius: 2,
+              ...(bgColor ? { backgroundColor: bgColor } : {}),
+              ...(isToday ? { outline: "1px solid rgba(0,0,0,0.35)", outlineOffset: "-1px" } : {}),
+            };
+
+            return onToggleDay ? (
+              <button
+                key={key}
+                onClick={() => onToggleDay(key)}
+                title={`${cell.date.toLocaleDateString()}${filled ? " · done" : ""}`}
+                aria-label={`Toggle ${cell.date.toLocaleDateString()}`}
+                style={style}
+                className={cn("transition-opacity hover:opacity-75", !filled && "bg-sand")}
+              />
+            ) : (
+              <span
+                key={key}
+                title={cell.date.toLocaleDateString()}
+                style={style}
+                className={cn(!filled && "bg-sand")}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
