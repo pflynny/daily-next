@@ -28,12 +28,14 @@ import {
   ChevronDown,
   ListIcon,
   QuoteIcon,
+  SearchIcon,
   TodayIcon,
 } from "@/shared/ui/icons";
 import { useIsDesktop } from "@/shared/hooks/useMediaQuery";
 import { useAppData } from "@/state/AppDataProvider";
 import { Sheet } from "@/shared/ui/Sheet";
 import { useToast } from "@/shared/ui/ToastProvider";
+import { OPEN_SEARCH_EVENT } from "@/features/search/CommandPalette";
 import { ListsPanel } from "@/features/lists/ListsPanel";
 import { QuotePanel } from "@/features/panel/QuotePanel";
 import { useTasks } from "./useTasks";
@@ -129,6 +131,13 @@ export function DailyView() {
         <h1 className="font-mono text-lg font-bold tracking-tight text-ink">
           DAILY
         </h1>
+        <button
+          onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+          aria-label="Search"
+          className="rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink"
+        >
+          <SearchIcon size={18} />
+        </button>
 
         {isDesktop ? (
           <div className="flex flex-1 items-center gap-1">
