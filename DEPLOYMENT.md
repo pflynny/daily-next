@@ -18,12 +18,13 @@ Legend: **[you]** = needs your account/dashboard · **[me]** = I can do/help.
    - **Site URL**: your production URL (e.g. `https://daily.yourdomain.com`).
    - **Redirect URLs**: add `https://<prod-url>/**` and
      `http://localhost:3000/**` (covers `/auth/callback` and `/auth/confirm`).
-4. **[you]** Auth → Providers → Email: keep **Email** enabled. Decide on
-   **"Confirm email"**:
-   - *Off* = simplest (sign up logs you straight in). Fine for a personal app.
-   - *On* = you must click a link; then set up **custom SMTP** (Auth → SMTP,
-     e.g. Resend/Postmark) because Supabase's built-in email is rate-limited
-     and not for production.
+4. **[you]** Auth → Providers → Email: keep **Email** enabled and turn
+   **"Confirm email" OFF** (chosen). Sign-up then logs you straight in — no
+   confirmation email, and **no SMTP setup needed**. The app handles both modes,
+   so you can flip it on later if you ever want it.
+   - Note: *password reset* still sends one email via Supabase's built-in
+     mailer. That's fine at personal volume; only add custom SMTP (Auth → SMTP,
+     e.g. Resend) if you start hitting its rate limit.
 
 ## 2. Cloudflare R2 (photos/videos)
 
