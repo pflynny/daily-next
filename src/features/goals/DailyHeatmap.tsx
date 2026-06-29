@@ -5,20 +5,20 @@ import { toDateKey, todayKey } from "@/lib/utils/date";
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Light pastels → vivid mids → deep forest darks
+// One signature color per month, drawn from seasonal palettes
 const MONTH_COLOR = [
-  "#98FF98", // Jan  Mint Green      — very light, fresh
-  "#93E9BE", // Feb  Seafoam Green   — light aqua-green
-  "#93C572", // Mar  Pistachio       — warm light green
-  "#9CAFB8", // Apr  Sage Green      — cool grey-green
-  "#8A9A5B", // May  Moss Green      — earthy medium
-  "#50C878", // Jun  Emerald Green   — vibrant jewel
-  "#4CBB17", // Jul  Kelly Green     — vivid pure grass
-  "#32CD32", // Aug  Lime Green      — electric bright
-  "#556B2F", // Sep  Olive Green     — earthy, darkening
-  "#355E3B", // Oct  Hunter Green    — heritage dark
-  "#4A704D", // Nov  Deep Forest     — rich dark green
-  "#014421", // Dec  Forest Green    — deepest
+  "#2A3F5E", // Jan  Indigo Blue    — deep winter navy
+  "#7F171F", // Feb  Merlot         — valentine deep red
+  "#455947", // Mar  Woodlands      — first spring forest
+  "#7EAF6A", // Apr  Spring Green   — (April not in source, bridging Mar→May)
+  "#F06842", // May  Marigold       — bold spring warmth
+  "#FEDC78", // Jun  Honeysuckle    — long golden days
+  "#E86C4F", // Jul  Fruit Punch    — high summer coral
+  "#BD5224", // Aug  Terra Cotta    — earthy August heat
+  "#DA9E3C", // Sep  Harvest Gold   — golden turn
+  "#BF5030", // Oct  Pumpkin Spice  — classic autumn
+  "#385B4C", // Nov  Evergreen      — deep late-year forest
+  "#741102", // Dec  Cranberry      — winter deep red
 ];
 
 const CELL = 10;
