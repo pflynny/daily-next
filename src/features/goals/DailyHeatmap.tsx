@@ -5,8 +5,21 @@ import { toDateKey, todayKey } from "@/lib/utils/date";
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Gentle hue cycle: blue → teal → lime → gold → coral → rose → violet → indigo
-const MONTH_HUE = [220, 200, 172, 145, 105, 58, 30, 10, 350, 315, 278, 248];
+// Fern palette — lightest Jan → darkest Dec for a smooth year-long transition
+const MONTH_COLOR = [
+  "#A8CBA5", // Jan  Fern Mist
+  "#97B69D", // Feb  Soft Fern
+  "#8DAE86", // Mar  Fern Shade
+  "#81A282", // Apr  Fern Meadow
+  "#7FA074", // May  Fern Glade
+  "#76A376", // Jun  Light Fern
+  "#709D6E", // Jul  Fresh Fern
+  "#6D8E68", // Aug  Fern Leaf
+  "#5C8A59", // Sep  Wild Fern
+  "#557B53", // Oct  Deep Fern
+  "#4A704D", // Nov  Forest Fern
+  "#3A5F0B", // Dec  Dark Fern
+];
 
 const CELL = 10;
 const GAP = 2;
@@ -94,16 +107,16 @@ export function DailyHeatmap({ year, counts, onToggleDay, mode = "binary", max =
             const value = counts.get(key) ?? 0;
             const filled = value > 0;
             const isToday = key === today;
-            const hue = MONTH_HUE[cell.month];
+            const monthColor = MONTH_COLOR[cell.month];
 
             let bgColor: string | undefined;
             if (filled) {
               if (mode === "intensity") {
                 const ratio = max > 0 ? value / max : 0;
-                const l = ratio >= 0.75 ? 40 : ratio >= 0.5 ? 48 : ratio >= 0.25 ? 56 : 66;
-                bgColor = `hsl(${hue},58%,${l}%)`;
+                // Vary opacity for intensity: full color → 40% for lowest
+                bgColor = monthColor + (ratio >= 0.75 ? "ff" : ratio >= 0.5 ? "cc" : ratio >= 0.25 ? "99" : "66");
               } else {
-                bgColor = `hsl(${hue},58%,60%)`;
+                bgColor = monthColor;
               }
             }
 
