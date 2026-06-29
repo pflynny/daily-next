@@ -17,7 +17,7 @@ import { todayKey } from "@/lib/utils/date";
 import { Sheet } from "@/shared/ui/Sheet";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
-import { ChevronLeft, ChevronRight, PlusIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
+import { ChevronLeft, ChevronRight, MoreIcon, PlusIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
 import { useTasks } from "@/features/daily/useTasks";
 import { useLists } from "./useLists";
 import { ListColumn } from "./ListColumn";
@@ -36,11 +36,22 @@ export function ListsPanel() {
   const [tabDraft, setTabDraft] = useState("");
   const [detailItem, setDetailItem] = useState<ListItem | null>(null);
   const [activeItem, setActiveItem] = useState<ListItem | null>(null);
+  const [menuTabId, setMenuTabId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<
     | { kind: "group"; id: string; label: string }
     | { kind: "list"; id: string; label: string }
     | null
   >(null);
+
+  useEffect(() => {
+    if (!menuTabId) return;
+    function handler(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-tab-menu]")) setMenuTabId(null);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuTabId]);
 
   useEffect(() => {
     if (!activeGroupId && groups.length) setActiveGroupId(groups[0].id);
@@ -101,15 +112,12 @@ export function ListsPanel() {
       <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto px-3 pt-3">
         {groups.map((group) => {
           const active = group.id === activeGroup?.id;
+          const menuOpen = menuTabId === group.id;
           return (
             <div
               key={group.id}
-              className={cn(
-                "group/tab flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1",
-                active
-                  ? "border-brand-500 text-ink"
-                  : "border-line text-muted hover:text-ink",
-              )}
+              data-tab-menu
+              className="group/tab relative flex shrink-0 items-center gap-0.5 pb-0.5"
             >
               {editingTabId === group.id ? (
                 <input
@@ -135,34 +143,59 @@ export function ListsPanel() {
                     setTabDraft(group.title);
                     setEditingTabId(group.id);
                   }}
-                  className="text-xs font-semibold uppercase tracking-wide"
+                  className={cn(
+                    "px-1 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors",
+                    active ? "text-ink border-b-2 border-brand-500" : "text-muted hover:text-ink",
+                  )}
                 >
                   {group.title}
                 </button>
               )}
+
               <button
-                onClick={() => lists.moveGroup(group.id, -1)}
-                aria-label="Move tab left"
-                className="text-faint hover:text-ink"
+                onClick={() => setMenuTabId(menuOpen ? null : group.id)}
+                aria-label="Tab options"
+                className="hover-reveal rounded p-0.5 text-faint hover:text-ink"
               >
-                <ChevronLeft size={12} />
+                <MoreIcon size={13} />
               </button>
-              <button
-                onClick={() => lists.moveGroup(group.id, 1)}
-                aria-label="Move tab right"
-                className="text-faint hover:text-ink"
-              >
-                <ChevronRight size={12} />
-              </button>
-              <button
-                onClick={() =>
-                  setConfirm({ kind: "group", id: group.id, label: group.title })
-                }
-                aria-label="Delete tab"
-                className="text-faint hover:text-danger"
-              >
-                <XIcon size={12} />
-              </button>
+
+              {menuOpen && (
+                <div className="absolute left-0 top-7 z-50 min-w-[140px] rounded-lg border border-line bg-surface py-1 shadow-lg">
+                  <button
+                    onClick={() => { lists.moveGroup(group.id, -1); setMenuTabId(null); }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand"
+                  >
+                    <ChevronLeft size={13} /> Move left
+                  </button>
+                  <button
+                    onClick={() => { lists.moveGroup(group.id, 1); setMenuTabId(null); }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand"
+                  >
+                    <ChevronRight size={13} /> Move right
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTabDraft(group.title);
+                      setEditingTabId(group.id);
+                      setMenuTabId(null);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand"
+                  >
+                    Rename
+                  </button>
+                  <div className="my-1 border-t border-line" />
+                  <button
+                    onClick={() => {
+                      setConfirm({ kind: "group", id: group.id, label: group.title });
+                      setMenuTabId(null);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-sand"
+                  >
+                    <XIcon size={13} /> Delete tab
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
