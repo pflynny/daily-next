@@ -211,6 +211,10 @@ export function ListsPanel() {
                   lists.updateItem(item, { text })
                 }
                 onOpenItem={setDetailItem}
+                onDeleteItem={(item) => {
+                  const restore = lists.deleteItem(item.id);
+                  toast.undo("Item deleted", restore);
+                }}
               />
             ))}
 

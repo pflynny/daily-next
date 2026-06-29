@@ -75,7 +75,7 @@ export function GoalsView() {
             </button>
           </div>
         ) : (
-          <div className="mx-auto grid max-w-4xl gap-4 p-4 md:grid-cols-2">
+          <div className="mx-auto grid max-w-2xl gap-4 p-4">
             {goals.active.map((goal, i) => (
               <GoalCard
                 key={goal.id}

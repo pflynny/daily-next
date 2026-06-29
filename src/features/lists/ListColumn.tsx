@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
-import { ChevronLeft, ChevronRight, TrashIcon } from "@/shared/ui/icons";
+import { ChevronDown, ChevronLeft, ChevronRight, MoreIcon, TrashIcon } from "@/shared/ui/icons";
 import { ListItemRow } from "./ListItemRow";
 import type { ListItem, ListView } from "@/types";
 
@@ -22,6 +22,7 @@ interface ListColumnProps {
   onToggleItem: (item: ListItem) => void;
   onUpdateItemText: (item: ListItem, text: string) => void;
   onOpenItem: (item: ListItem) => void;
+  onDeleteItem: (item: ListItem) => void;
 }
 
 export function ListColumn({
@@ -35,13 +36,28 @@ export function ListColumn({
   onToggleItem,
   onUpdateItemText,
   onOpenItem,
+  onDeleteItem,
 }: ListColumnProps) {
   const [draft, setDraft] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(list.name);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const incomplete = list.items.filter((i) => !i.completed);
   const completed = list.items.filter((i) => i.completed);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const { setNodeRef, isOver } = useDroppable({
     id: `list:${list.id}`,
@@ -50,6 +66,7 @@ export function ListColumn({
 
   return (
     <div className="flex w-[280px] shrink-0 flex-col sm:w-[260px]">
+      {/* Header */}
       <div className="group/head mb-1 flex items-center gap-1.5 border-b border-line pb-1.5">
         {editingName ? (
           <input
@@ -80,33 +97,45 @@ export function ListColumn({
             <span className="text-faint">{list.items.length}</span>
           </button>
         )}
-        <div className="flex items-center gap-0.5 text-faint">
+
+        {/* ⋮ menu */}
+        <div ref={menuRef} className="relative">
           <button
-            onClick={() => onMove(list.id, -1)}
-            disabled={isFirst}
-            aria-label="Move list left"
-            className="rounded p-0.5 text-faint hover:text-ink disabled:opacity-30"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="List options"
+            className="rounded p-0.5 text-faint hover:text-ink"
           >
-            <ChevronLeft size={14} />
+            <MoreIcon size={15} />
           </button>
-          <button
-            onClick={() => onMove(list.id, 1)}
-            disabled={isLast}
-            aria-label="Move list right"
-            className="rounded p-0.5 text-faint hover:text-ink disabled:opacity-30"
-          >
-            <ChevronRight size={14} />
-          </button>
-          <button
-            onClick={() => onDelete(list.id)}
-            aria-label="Delete list"
-            className="rounded p-0.5 text-faint hover:text-danger"
-          >
-            <TrashIcon size={14} />
-          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-6 z-50 min-w-[140px] rounded-lg border border-line bg-surface py-1 shadow-lg">
+              <button
+                onClick={() => { onMove(list.id, -1); setMenuOpen(false); }}
+                disabled={isFirst}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand disabled:opacity-30"
+              >
+                <ChevronLeft size={13} /> Move left
+              </button>
+              <button
+                onClick={() => { onMove(list.id, 1); setMenuOpen(false); }}
+                disabled={isLast}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand disabled:opacity-30"
+              >
+                <ChevronRight size={13} /> Move right
+              </button>
+              <div className="my-1 border-t border-line" />
+              <button
+                onClick={() => { onDelete(list.id); setMenuOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-sand"
+              >
+                <TrashIcon size={13} /> Delete list
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Items */}
       <div
         ref={setNodeRef}
         className={cn(
@@ -126,6 +155,7 @@ export function ListColumn({
               onToggle={onToggleItem}
               onUpdateText={onUpdateItemText}
               onOpenDetail={onOpenItem}
+              onDelete={onDeleteItem}
             />
           ))}
         </SortableContext>
@@ -145,16 +175,33 @@ export function ListColumn({
           />
         </div>
 
-        {completed.map((item) => (
-          <ListItemRow
-            key={item.id}
-            item={item}
-            sortable={false}
-            onToggle={onToggleItem}
-            onUpdateText={onUpdateItemText}
-            onOpenDetail={onOpenItem}
-          />
-        ))}
+        {/* Completed expander */}
+        {completed.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowCompleted((v) => !v)}
+              className="flex w-full items-center gap-1.5 px-1 py-1.5 text-xs text-muted hover:text-ink"
+            >
+              <ChevronDown
+                size={12}
+                className={cn("transition-transform", showCompleted && "rotate-180")}
+              />
+              {showCompleted ? "Hide" : "Show"} {completed.length} completed
+            </button>
+            {showCompleted &&
+              completed.map((item) => (
+                <ListItemRow
+                  key={item.id}
+                  item={item}
+                  sortable={false}
+                  onToggle={onToggleItem}
+                  onUpdateText={onUpdateItemText}
+                  onOpenDetail={onOpenItem}
+                  onDelete={onDeleteItem}
+                />
+              ))}
+          </div>
+        )}
       </div>
     </div>
   );

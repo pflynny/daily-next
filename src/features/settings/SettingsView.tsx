@@ -47,13 +47,13 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-6 w-10 rounded-full transition-colors",
+          "relative h-6 w-10 overflow-hidden rounded-full transition-colors",
           checked ? "bg-brand-600" : "bg-line",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-white transition-transform",
+            "absolute top-0.5 size-5 rounded-full bg-[white] transition-transform",
             checked ? "translate-x-[18px]" : "translate-x-0.5",
           )}
         />

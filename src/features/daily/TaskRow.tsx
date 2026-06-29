@@ -87,7 +87,7 @@ export function TaskRow({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group relative py-2 pl-4 pr-16",
+          "group relative py-2 pl-6 pr-10",
           isDragging && "opacity-50",
         )}
       >
@@ -127,7 +127,7 @@ export function TaskRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative py-1.5 pl-9 pr-16",
+        "group relative py-1.5 pl-6 pr-10",
         isDragging && "opacity-50",
       )}
     >
@@ -135,7 +135,7 @@ export function TaskRow({
         onClick={() => onToggle(task)}
         aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
-          "absolute left-3 top-1.5 flex size-[18px] items-center justify-center rounded-[5px] border transition-colors",
+          "absolute left-1 top-1.5 flex size-[18px] items-center justify-center rounded-[5px] border transition-colors",
           task.completed
             ? "border-brand-500 bg-brand-500 text-white"
             : "border-line text-transparent hover:border-brand-400 hover-reveal",
@@ -166,7 +166,8 @@ export function TaskRow({
             setEditing(true);
           }}
           className={cn(
-            "block w-full break-words text-left text-sm leading-snug [overflow-wrap:anywhere]",
+            "block w-full text-left text-sm leading-snug",
+            "truncate group-hover:whitespace-normal group-hover:overflow-visible",
             task.completed ? "text-faint line-through" : "text-ink",
           )}
         >
