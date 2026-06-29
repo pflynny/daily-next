@@ -21,6 +21,15 @@ const MONTH_COLOR = [
   "#042D29", // Dec  Midnight       — darkest winter
 ];
 
+// Mix a hex color with white — 0 = original, 1 = white
+function tint(hex: string, amount = 0.28): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const m = (c: number) => Math.round(c + (255 - c) * amount);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+
 const CELL = 10;
 const GAP = 2;
 const STRIDE = CELL + GAP;
@@ -113,10 +122,10 @@ export function DailyHeatmap({ year, counts, onToggleDay, mode = "binary", max =
             if (filled) {
               if (mode === "intensity") {
                 const ratio = max > 0 ? value / max : 0;
-                // Vary opacity for intensity: full color → 40% for lowest
-                bgColor = monthColor + (ratio >= 0.75 ? "ff" : ratio >= 0.5 ? "cc" : ratio >= 0.25 ? "99" : "66");
+                const extra = ratio >= 0.75 ? 0 : ratio >= 0.5 ? 0.12 : ratio >= 0.25 ? 0.24 : 0.4;
+                bgColor = tint(monthColor, 0.28 + extra);
               } else {
-                bgColor = monthColor;
+                bgColor = tint(monthColor);
               }
             }
 
