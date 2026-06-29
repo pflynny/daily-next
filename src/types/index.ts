@@ -16,6 +16,20 @@ export interface Task {
   position: number;
 }
 
+/* --------------------------- Routines ----------------------------- */
+/** A recurring task that auto-populates the daily list on matching days. */
+export interface Routine {
+  id: string;
+  text: string;
+  /** Weekdays it runs on: 0=Sun … 6=Sat. */
+  days: number[];
+  active: boolean;
+  position: number;
+  /** Local date key of the last day instances were generated. */
+  lastGenerated: string | null;
+  createdAt: string;
+}
+
 /* ----------------------------- Lists ------------------------------ */
 export interface ListItem {
   id: string;

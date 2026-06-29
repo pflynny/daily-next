@@ -8,6 +8,7 @@ import { TrashIcon, UploadIcon } from "@/shared/ui/icons";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useAppData } from "@/state/AppDataProvider";
 import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
+import { RoutinesManager } from "@/features/routines/RoutinesManager";
 import { InstallButton } from "./InstallButton";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
 
@@ -196,6 +197,14 @@ export function SettingsView() {
             {importMsg && (
               <p className="mt-2 text-xs text-brand-700">{importMsg}</p>
             )}
+          </Section>
+
+          {/* Routines */}
+          <Section title="Routines">
+            <p className="mb-3 text-sm text-muted">
+              Recurring tasks that auto-fill your day on the chosen weekdays.
+            </p>
+            <RoutinesManager />
           </Section>
 
           {/* App */}

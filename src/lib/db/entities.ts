@@ -1,5 +1,6 @@
 import type {
   Task,
+  Routine,
   ListGroup,
   List,
   ListItem,
@@ -19,6 +20,7 @@ import type {
 
 export type StateKey =
   | "tasks"
+  | "routines"
   | "listGroups"
   | "lists"
   | "listItems"
@@ -32,6 +34,7 @@ export type StateKey =
 
 export interface EntityState {
   tasks: Task[];
+  routines: Routine[];
   listGroups: ListGroup[];
   lists: List[];
   listItems: ListItem[];
@@ -46,6 +49,7 @@ export interface EntityState {
 
 export const EMPTY_STATE: EntityState = {
   tasks: [],
+  routines: [],
   listGroups: [],
   lists: [],
   listItems: [],
@@ -93,6 +97,28 @@ export const ENTITIES: Record<StateKey, EntityConfig> = {
       isLabel: bool(r.is_label),
       notes: str(r.notes),
       position: num(r.position),
+    }),
+  },
+  routines: {
+    table: "routines",
+    orderBy: "position",
+    toRow: (r: Routine) => ({
+      id: r.id,
+      text: r.text,
+      days: r.days,
+      active: r.active,
+      position: r.position,
+      last_generated: r.lastGenerated,
+      created_at: r.createdAt,
+    }),
+    fromRow: (r): Routine => ({
+      id: str(r.id),
+      text: str(r.text),
+      days: Array.isArray(r.days) ? r.days.map(Number) : [],
+      active: r.active !== false,
+      position: num(r.position),
+      lastGenerated: r.last_generated ?? null,
+      createdAt: str(r.created_at),
     }),
   },
   listGroups: {

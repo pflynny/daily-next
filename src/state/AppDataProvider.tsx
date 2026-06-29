@@ -20,6 +20,7 @@ import {
   type StateKey,
 } from "@/lib/db/entities";
 import { carryOverTasks } from "@/lib/db/carryover";
+import { generateRoutineTasks } from "@/lib/db/routines";
 import { DEFAULT_SETTINGS, type AppSettings } from "@/types";
 
 interface HasId {
@@ -152,19 +153,37 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
       if (!active) return;
 
-      // Daily carryover of incomplete tasks.
-      const { tasks, changed } = carryOverTasks(next.state.tasks);
-      const finalState = { ...next.state, tasks };
+      // Daily carryover of incomplete tasks, then routine generation.
+      const carried = carryOverTasks(next.state.tasks);
+      const gen = generateRoutineTasks(next.state.routines, carried.tasks);
+      const finalState = {
+        ...next.state,
+        tasks: gen.tasks,
+        routines: gen.routines,
+      };
       setData(finalState);
       setSettingsState(next.settings);
       setStatus("ready");
 
-      if (changed.length && cloud && supabaseRef.current && userId) {
-        const rows = changed.map((t) => ({
-          ...ENTITIES.tasks.toRow(t),
-          user_id: userId,
-        }));
-        void supabaseRef.current.from("tasks").upsert(rows);
+      const changedTasks = [...carried.changed, ...gen.changedTasks];
+      const sb = supabaseRef.current;
+      if (cloud && sb && userId) {
+        if (changedTasks.length) {
+          void sb.from("tasks").upsert(
+            changedTasks.map((t) => ({
+              ...ENTITIES.tasks.toRow(t),
+              user_id: userId,
+            })),
+          );
+        }
+        if (gen.changedRoutines.length) {
+          void sb.from("routines").upsert(
+            gen.changedRoutines.map((r) => ({
+              ...ENTITIES.routines.toRow(r),
+              user_id: userId,
+            })),
+          );
+        }
       }
     }
 

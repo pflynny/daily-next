@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -40,17 +41,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     timer.current = setTimeout(() => setToast(null), 6000);
   }, []);
 
-  const api = useRef<ToastApi>({
-    undo: (message, restore) => show({ message, restore }),
-    notify: (message) => show({ message }),
-  });
+  const api = useMemo<ToastApi>(
+    () => ({
+      undo: (message, restore) => show({ message, restore }),
+      notify: (message) => show({ message }),
+    }),
+    [show],
+  );
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
   return (
-    <ToastContext.Provider value={api.current}>
+    <ToastContext.Provider value={api}>
       {children}
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex justify-center px-4">

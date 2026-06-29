@@ -31,6 +31,21 @@ create table if not exists tasks (
 create index if not exists idx_tasks_user_date on tasks (user_id, date, position);
 
 -- ------------------------------------------------------------------
+-- routines (recurring tasks)
+-- ------------------------------------------------------------------
+create table if not exists routines (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  text text not null default '',
+  days smallint[] not null default '{}',
+  active boolean not null default true,
+  position integer not null default 0,
+  last_generated date,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_routines_user on routines (user_id, position);
+
+-- ------------------------------------------------------------------
 -- lists (brain dump): groups -> lists -> items
 -- ------------------------------------------------------------------
 create table if not exists list_groups (
@@ -172,6 +187,7 @@ create index if not exists idx_liked_quotes_user on liked_quotes (user_id, creat
 -- ------------------------------------------------------------------
 alter table profiles         enable row level security;
 alter table tasks            enable row level security;
+alter table routines         enable row level security;
 alter table list_groups      enable row level security;
 alter table lists            enable row level security;
 alter table list_items       enable row level security;
@@ -194,7 +210,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'tasks','list_groups','lists','list_items','collections','collection_items',
+    'tasks','routines','list_groups','lists','list_items','collections','collection_items',
     'goals','goal_entries','memories','memory_media','liked_quotes'
   ]
   loop
