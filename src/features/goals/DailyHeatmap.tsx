@@ -5,20 +5,20 @@ import { toDateKey, todayKey } from "@/lib/utils/date";
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// One signature color per month, drawn from seasonal palettes
+// One signature color per month from the seasonal palette cards
 const MONTH_COLOR = [
   "#2A3F5E", // Jan  Indigo Blue    — deep winter navy
-  "#7F171F", // Feb  Merlot         — valentine deep red
-  "#455947", // Mar  Woodlands      — first spring forest
-  "#7EAF6A", // Apr  Spring Green   — (April not in source, bridging Mar→May)
+  "#7F171F", // Feb  Merlot         — valentine red
+  "#455947", // Mar  Woodlands      — first forest green
+  "#498B60", // Apr  Viridian       — spring mid-green
   "#F06842", // May  Marigold       — bold spring warmth
   "#FEDC78", // Jun  Honeysuckle    — long golden days
-  "#E86C4F", // Jul  Fruit Punch    — high summer coral
-  "#BD5224", // Aug  Terra Cotta    — earthy August heat
-  "#DA9E3C", // Sep  Harvest Gold   — golden turn
+  "#027A76", // Jul  Deep Dive      — summer teal depths
+  "#BD5224", // Aug  Terra Cotta    — earthy summer heat
+  "#DA993C", // Sep  Harvest Gold   — golden turn
   "#BF5030", // Oct  Pumpkin Spice  — classic autumn
-  "#385B4C", // Nov  Evergreen      — deep late-year forest
-  "#741102", // Dec  Cranberry      — winter deep red
+  "#38524C", // Nov  Evergreen      — deep late forest
+  "#042D29", // Dec  Midnight       — darkest winter
 ];
 
 const CELL = 10;
