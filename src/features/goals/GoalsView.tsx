@@ -18,8 +18,6 @@ export function GoalsView() {
   const [formOpen, setFormOpen] = useState(false);
   const [editGoal, setEditGoal] = useState<Goal | null>(null);
 
-  const hasDaily = goals.active.some((g) => g.cadence === "day");
-
   function openAdd() {
     setEditGoal(null);
     setFormOpen(true);
@@ -28,8 +26,7 @@ export function GoalsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="GOALS">
-        {hasDaily && (
-          <div className="flex items-center gap-1 rounded-lg border border-line px-1">
+        <div className="flex items-center gap-1 rounded-lg border border-line px-1">
             <button
               onClick={() => setYear((y) => y - 1)}
               aria-label="Previous year"
@@ -48,8 +45,7 @@ export function GoalsView() {
             >
               <ChevronRight size={15} />
             </button>
-          </div>
-        )}
+        </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800"
@@ -83,10 +79,7 @@ export function GoalsView() {
                 year={year}
                 stats={goals.statsFor(goal, year)}
                 counts={goals.datesFor(goal.id)}
-                history={goals.periodHistory(
-                  goal,
-                  goal.cadence === "month" ? 12 : 16,
-                )}
+                history={goals.periodHistory(goal, year)}
                 isFirst={i === 0}
                 isLast={i === goals.active.length - 1}
                 onRename={(g, title) => goals.updateGoal(g, { title })}

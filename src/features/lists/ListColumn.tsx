@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -8,6 +8,7 @@ import {
 } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown, ChevronLeft, ChevronRight, MoreIcon, TrashIcon } from "@/shared/ui/icons";
+import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
 import { ListItemRow } from "./ListItemRow";
 import type { ListItem, ListView } from "@/types";
 
@@ -41,23 +42,10 @@ export function ListColumn({
   const [draft, setDraft] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(list.name);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const incomplete = list.items.filter((i) => !i.completed);
   const completed = list.items.filter((i) => i.completed);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handler(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
 
   const { setNodeRef, isOver } = useDroppable({
     id: `list:${list.id}`,
@@ -67,30 +55,21 @@ export function ListColumn({
   return (
     <div className="flex w-[280px] shrink-0 flex-col sm:w-[260px]">
       {/* Header */}
-      <div className="group/head mb-1 flex items-center gap-1.5 pl-5">
+      <div className="mb-1 flex items-center gap-1.5 pl-5">
         {editingName ? (
           <input
             autoFocus
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
-            onBlur={() => {
-              setEditingName(false);
-              onRename(list, nameDraft);
-            }}
+            onBlur={() => { setEditingName(false); onRename(list, nameDraft); }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                setEditingName(false);
-                onRename(list, nameDraft);
-              }
+              if (e.key === "Enter") { setEditingName(false); onRename(list, nameDraft); }
             }}
             className="flex-1 bg-transparent text-xs font-bold uppercase tracking-wide text-brand-600 outline-none"
           />
         ) : (
           <button
-            onClick={() => {
-              setNameDraft(list.name);
-              setEditingName(true);
-            }}
+            onClick={() => { setNameDraft(list.name); setEditingName(true); }}
             className="flex-1 text-left text-xs font-bold uppercase tracking-wide text-brand-600"
           >
             {list.name}{" "}
@@ -98,55 +77,32 @@ export function ListColumn({
           </button>
         )}
 
-        {/* ⋮ menu */}
-        <div ref={menuRef} className="relative">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="List options"
-            className="rounded p-0.5 text-faint hover:text-ink"
-          >
-            <MoreIcon size={15} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-6 z-50 min-w-[140px] rounded-lg border border-line bg-surface py-1 shadow-lg">
-              <button
-                onClick={() => { onMove(list.id, -1); setMenuOpen(false); }}
-                disabled={isFirst}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand disabled:opacity-30"
-              >
-                <ChevronLeft size={13} /> Move left
-              </button>
-              <button
-                onClick={() => { onMove(list.id, 1); setMenuOpen(false); }}
-                disabled={isLast}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand disabled:opacity-30"
-              >
-                <ChevronRight size={13} /> Move right
-              </button>
-              <div className="my-1 border-t border-line" />
-              <button
-                onClick={() => { onDelete(list.id); setMenuOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-sand"
-              >
-                <TrashIcon size={13} /> Delete list
-              </button>
-            </div>
-          )}
-        </div>
+        <DropdownMenu
+          trigger={
+            <button aria-label="List options" className="rounded p-0.5 text-faint hover:text-ink">
+              <MoreIcon size={15} />
+            </button>
+          }
+        >
+          <DropdownItem onClick={() => onMove(list.id, -1)} disabled={isFirst}>
+            <ChevronLeft size={13} /> Move left
+          </DropdownItem>
+          <DropdownItem onClick={() => onMove(list.id, 1)} disabled={isLast}>
+            <ChevronRight size={13} /> Move right
+          </DropdownItem>
+          <DropdownSeparator />
+          <DropdownItem danger onClick={() => onDelete(list.id)}>
+            <TrashIcon size={13} /> Delete list
+          </DropdownItem>
+        </DropdownMenu>
       </div>
 
       {/* Items */}
       <div
         ref={setNodeRef}
-        className={cn(
-          "min-h-[40px] rounded-md transition-colors",
-          isOver && "bg-brand-50",
-        )}
+        className={cn("min-h-[40px] rounded-md transition-colors", isOver && "bg-brand-50")}
       >
-        <SortableContext
-          items={incomplete.map((i) => i.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={incomplete.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           {incomplete.map((item) => (
             <ListItemRow
               key={item.id}
@@ -165,27 +121,20 @@ export function ListColumn({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && draft.trim()) {
-                onAddItem(list.id, draft);
-                setDraft("");
-              }
+              if (e.key === "Enter" && draft.trim()) { onAddItem(list.id, draft); setDraft(""); }
             }}
             placeholder="Add item…"
             className="w-full bg-transparent text-xs text-ink placeholder:text-faint/70 outline-none"
           />
         </div>
 
-        {/* Completed expander */}
         {completed.length > 0 && (
           <div>
             <button
               onClick={() => setShowCompleted((v) => !v)}
               className="flex w-full items-center gap-1.5 px-1 py-1.5 text-xs text-muted hover:text-ink"
             >
-              <ChevronDown
-                size={12}
-                className={cn("transition-transform", showCompleted && "rotate-180")}
-              />
+              <ChevronDown size={12} className={cn("transition-transform", showCompleted && "rotate-180")} />
               {showCompleted ? "Hide" : "Show"} {completed.length} completed
             </button>
             {showCompleted &&

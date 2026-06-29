@@ -228,27 +228,29 @@ export function useGoals() {
     [datesFor, periodCount],
   );
 
-  /** Last `count` periods (oldest..newest) with met/target info. */
+  /** All periods in `year` (Jan→Dec) with met/target info. */
   const periodHistory = useCallback(
-    (goal: Goal, count: number) => {
-      const out: { label: string; value: number; met: boolean; key: string }[] =
-        [];
+    (goal: Goal, year: number) => {
+      const out: { label: string; value: number; met: boolean; key: string }[] = [];
       const today = new Date();
-      for (let i = count - 1; i >= 0; i -= 1) {
-        let ref: Date;
-        let label: string;
-        let key: string;
-        if (goal.cadence === "week") {
-          ref = startOfWeek(addDays(today, -i * 7), weekStartsOn);
-          key = weekKey(ref, weekStartsOn);
-          label = `${ref.getDate()}/${ref.getMonth() + 1}`;
-        } else {
-          ref = new Date(today.getFullYear(), today.getMonth() - i, 1);
-          key = toDateKey(ref).slice(0, 7);
-          label = ref.toLocaleDateString(undefined, { month: "short" });
+      if (goal.cadence === "week") {
+        let ref = startOfWeek(new Date(year, 0, 1), weekStartsOn);
+        while (ref.getFullYear() <= year) {
+          if (ref > today) break;
+          const k = weekKey(ref, weekStartsOn);
+          const value = periodCount(goal.id, goal.cadence, ref);
+          out.push({ label: `${ref.getDate()}/${ref.getMonth() + 1}`, value, met: value >= goal.target, key: k });
+          ref = addDays(ref, 7);
+          if (ref.getFullYear() > year) break;
         }
-        const value = periodCount(goal.id, goal.cadence, ref);
-        out.push({ label, value, met: value >= goal.target, key });
+      } else {
+        for (let m = 0; m < 12; m += 1) {
+          const ref = new Date(year, m, 1);
+          if (ref > today) break;
+          const k = toDateKey(ref).slice(0, 7);
+          const value = periodCount(goal.id, goal.cadence, ref);
+          out.push({ label: ref.toLocaleDateString(undefined, { month: "short" }), value, met: value >= goal.target, key: k });
+        }
       }
       return out;
     },

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
 import { CheckIcon, MoreIcon, NoteIcon, TrashIcon } from "@/shared/ui/icons";
+import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
 import type { ListItem } from "@/types";
 
 interface ListItemRowProps {
@@ -26,8 +27,6 @@ export function ListItemRow({
 }: ListItemRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const {
     attributes,
@@ -50,17 +49,6 @@ export function ListItemRow({
     if (trimmed && trimmed !== item.text) onUpdateText(item, trimmed);
     else setDraft(item.text);
   }
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handler(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
 
   return (
     <div
@@ -95,10 +83,7 @@ export function ListItemRow({
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") commit();
-            if (e.key === "Escape") {
-              setDraft(item.text);
-              setEditing(false);
-            }
+            if (e.key === "Escape") { setDraft(item.text); setEditing(false); }
           }}
           className="w-full bg-transparent text-xs leading-snug outline-none"
         />
@@ -115,34 +100,22 @@ export function ListItemRow({
       )}
 
       {/* ⋮ menu */}
-      <div ref={menuRef} className="absolute right-0.5 top-1.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-          aria-label="Item options"
-          className="hover-reveal rounded p-0.5 text-faint hover:text-ink"
+      <div className="absolute right-0.5 top-1" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu
+          trigger={
+            <button aria-label="Item options" className="hover-reveal rounded p-0.5 text-faint hover:text-ink">
+              <MoreIcon size={14} />
+            </button>
+          }
         >
-          <MoreIcon size={14} />
-        </button>
-        {menuOpen && (
-          <div className="absolute right-0 top-6 z-50 min-w-[130px] rounded-lg border border-line bg-surface py-1 shadow-lg">
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenDetail(item); setMenuOpen(false); }}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-ink hover:bg-sand",
-              )}
-            >
-              <NoteIcon size={13} />
-              {item.notes ? "Edit details" : "Add details"}
-            </button>
-            <div className="my-1 border-t border-line" />
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(item); setMenuOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-sand"
-            >
-              <TrashIcon size={13} /> Delete
-            </button>
-          </div>
-        )}
+          <DropdownItem onClick={() => onOpenDetail(item)}>
+            <NoteIcon size={13} /> {item.notes ? "Edit details" : "Add details"}
+          </DropdownItem>
+          <DropdownSeparator />
+          <DropdownItem danger onClick={() => onDelete(item)}>
+            <TrashIcon size={13} /> Delete
+          </DropdownItem>
+        </DropdownMenu>
       </div>
     </div>
   );
