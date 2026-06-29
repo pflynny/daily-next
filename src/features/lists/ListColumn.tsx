@@ -67,7 +67,7 @@ export function ListColumn({
   return (
     <div className="flex w-[280px] shrink-0 flex-col sm:w-[260px]">
       {/* Header */}
-      <div className="group/head mb-1 flex items-center gap-1.5 border-b border-line pb-1.5">
+      <div className="group/head mb-1 flex items-center gap-1.5 pl-5">
         {editingName ? (
           <input
             autoFocus
