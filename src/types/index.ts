@@ -165,6 +165,21 @@ export interface LikedQuote extends Quote {
   createdAt: string;
 }
 
+/* -------------------------- Check-ins ----------------------------- */
+export type CheckInKind = "morning" | "evening";
+
+export interface CheckIn {
+  id: string;
+  /** Local date key, YYYY-MM-DD */
+  date: string;
+  kind: CheckInKind;
+  feelings: string[];
+  /** Up to three good things; the first is the day's top thing. */
+  gratitude: string[];
+  note: string;
+  createdAt: string;
+}
+
 /* -------------------------- Profile ------------------------------- */
 export interface AppSettings {
   showLists: boolean;

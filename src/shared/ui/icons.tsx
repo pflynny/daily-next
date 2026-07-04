@@ -199,6 +199,27 @@ export const SearchIcon = (p: IconProps) => (
     <path d="m21 21-4.3-4.3" />
   </Svg>
 );
+export const SmileIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0" />
+    <path d="M9 9.5h.01M15 9.5h.01" />
+  </Svg>
+);
+
+export const SunIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
+  </Svg>
+);
+
+export const MoonIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5Z" />
+  </Svg>
+);
+
 export const MoreIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />

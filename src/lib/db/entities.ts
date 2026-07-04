@@ -11,6 +11,8 @@ import type {
   Memory,
   MemoryMedia,
   LikedQuote,
+  CheckIn,
+  CheckInKind,
   CollectionMediaType,
   GoalCadence,
   MemoryType,
@@ -30,7 +32,8 @@ export type StateKey =
   | "goalEntries"
   | "memories"
   | "memoryMedia"
-  | "likedQuotes";
+  | "likedQuotes"
+  | "checkIns";
 
 export interface EntityState {
   tasks: Task[];
@@ -45,6 +48,7 @@ export interface EntityState {
   memories: Memory[];
   memoryMedia: MemoryMedia[];
   likedQuotes: LikedQuote[];
+  checkIns: CheckIn[];
 }
 
 export const EMPTY_STATE: EntityState = {
@@ -60,6 +64,7 @@ export const EMPTY_STATE: EntityState = {
   memories: [],
   memoryMedia: [],
   likedQuotes: [],
+  checkIns: [],
 };
 
 interface EntityConfig {
@@ -328,6 +333,28 @@ export const ENTITIES: Record<StateKey, EntityConfig> = {
       id: str(r.id),
       text: str(r.text),
       author: str(r.author),
+      createdAt: str(r.created_at),
+    }),
+  },
+  checkIns: {
+    table: "check_ins",
+    orderBy: "date",
+    toRow: (c: CheckIn) => ({
+      id: c.id,
+      date: c.date,
+      kind: c.kind,
+      feelings: c.feelings,
+      gratitude: c.gratitude,
+      note: c.note,
+      created_at: c.createdAt,
+    }),
+    fromRow: (r): CheckIn => ({
+      id: str(r.id),
+      date: str(r.date),
+      kind: str(r.kind, "morning") as CheckInKind,
+      feelings: Array.isArray(r.feelings) ? r.feelings.map(String) : [],
+      gratitude: Array.isArray(r.gratitude) ? r.gratitude.map(String) : [],
+      note: str(r.note),
       createdAt: str(r.created_at),
     }),
   },

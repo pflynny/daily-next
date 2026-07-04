@@ -51,6 +51,16 @@ export interface WrappedData {
     count: number;
     featured: { text: string; author: string } | null;
   };
+  feelings: {
+    /** days with at least one check-in */
+    daysCheckedIn: number;
+    /** [word, count] sorted by count desc */
+    counts: [string, number][];
+  };
+  gratitude: {
+    /** the top (first) thing from each evening, oldest first */
+    entries: { date: string; text: string }[];
+  };
   /** combined per-day activity for the heatmap */
   activity: Map<string, number>;
   activityMax: number;
@@ -66,6 +76,7 @@ export function useWrapped(year: number): WrappedData {
     memories,
     memoryMedia,
     likedQuotes,
+    checkIns,
   } = useAppData();
 
   return useMemo(() => {
@@ -112,10 +123,10 @@ export function useWrapped(year: number): WrappedData {
 
     // ---- goals ----
     const perGoal = new Map<string, number>();
-    let checkIns = 0;
+    let goalCheckIns = 0;
     for (const e of goalEntries) {
       if (!e.date.startsWith(prefix)) continue;
-      checkIns += e.count;
+      goalCheckIns += e.count;
       perGoal.set(e.goalId, (perGoal.get(e.goalId) ?? 0) + e.count);
       bump(e.date, e.count);
     }
@@ -160,6 +171,27 @@ export function useWrapped(year: number): WrappedData {
       .filter((m) => m.media.some((md) => md.kind === "image"))
       .slice(0, 6);
 
+    // ---- check-ins: feelings + gratitude ----
+    const feelingCounts = new Map<string, number>();
+    const checkedInDays = new Set<string>();
+    const gratitudeEntries: { date: string; text: string }[] = [];
+    for (const c of checkIns) {
+      if (!c.date.startsWith(prefix)) continue;
+      checkedInDays.add(c.date);
+      bump(c.date);
+      for (const w of c.feelings) {
+        feelingCounts.set(w, (feelingCounts.get(w) ?? 0) + 1);
+      }
+      const top = c.gratitude.find((g) => g.trim());
+      if (c.kind === "evening" && top) {
+        gratitudeEntries.push({ date: c.date, text: top });
+      }
+    }
+    gratitudeEntries.sort((a, b) => (a.date < b.date ? -1 : 1));
+    const feelingsSorted = [...feelingCounts.entries()].sort(
+      (a, b) => b[1] - a[1],
+    );
+
     // ---- quotes ----
     const featured =
       likedQuotes.length > 0
@@ -180,7 +212,7 @@ export function useWrapped(year: number): WrappedData {
         longestStreak,
         monthly,
       },
-      goals: { tracked: goals.length, checkIns, topGoal },
+      goals: { tracked: goals.length, checkIns: goalCheckIns, topGoal },
       collection: { total: items.length, byType, topRated },
       memories: { count: yearMemories.length, photos },
       quotes: {
@@ -189,6 +221,11 @@ export function useWrapped(year: number): WrappedData {
           ? { text: featured.text, author: featured.author }
           : null,
       },
+      feelings: {
+        daysCheckedIn: checkedInDays.size,
+        counts: feelingsSorted,
+      },
+      gratitude: { entries: gratitudeEntries },
       activity,
       activityMax,
     };
@@ -202,5 +239,6 @@ export function useWrapped(year: number): WrappedData {
     memories,
     memoryMedia,
     likedQuotes,
+    checkIns,
   ]);
 }

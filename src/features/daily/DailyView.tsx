@@ -38,6 +38,7 @@ import { useToast } from "@/shared/ui/ToastProvider";
 import { OPEN_SEARCH_EVENT } from "@/features/search/CommandPalette";
 import { ListsPanel } from "@/features/lists/ListsPanel";
 import { QuotePanel } from "@/features/panel/QuotePanel";
+import { CheckInPrompt } from "@/features/checkins/CheckInPrompt";
 import { useTasks } from "./useTasks";
 import { DayColumn } from "./DayColumn";
 import { TaskDetailSheet } from "./TaskDetailSheet";
@@ -220,6 +221,8 @@ export function DailyView() {
           </div>
         )}
       </header>
+
+      <CheckInPrompt />
 
       {/* Days */}
       <DndContext

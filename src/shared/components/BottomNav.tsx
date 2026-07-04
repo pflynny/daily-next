@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   TargetIcon,
   ImagesIcon,
+  SmileIcon,
   StackIcon,
   SparkleIcon,
   SettingsIcon,
@@ -14,6 +15,7 @@ import {
 
 const ITEMS = [
   { href: "/", label: "Daily", Icon: CalendarIcon },
+  { href: "/check-ins", label: "Check-in", Icon: SmileIcon },
   { href: "/goals", label: "Goals", Icon: TargetIcon },
   { href: "/memories", label: "Memories", Icon: ImagesIcon },
   { href: "/year", label: "Year", Icon: StackIcon },

@@ -6,6 +6,8 @@ import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { ChevronLeft, ChevronRight } from "@/shared/ui/icons";
 import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
+import { TONE_OF } from "@/features/checkins/feelings";
+import { formatLongDate } from "@/lib/utils/date";
 import { useWrapped } from "./useWrapped";
 
 const MONTH_LETTERS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
@@ -201,6 +203,36 @@ export function WrappedView() {
             </section>
           )}
 
+          {/* Feelings */}
+          {w.feelings.counts.length > 0 && (
+            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+              <SectionLabel>How you felt</SectionLabel>
+              <Big value={w.feelings.daysCheckedIn} label="Days checked in" />
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {w.feelings.counts.slice(0, 20).map(([word, count]) => (
+                  <span
+                    key={word}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs",
+                      TONE_OF.get(word) === "down"
+                        ? "bg-amber-700/10 text-amber-800"
+                        : TONE_OF.get(word) === "flat"
+                          ? "bg-ink/5 text-muted"
+                          : "bg-brand-500/10 text-brand-700",
+                    )}
+                  >
+                    {word} <span className="font-bold">{count}</span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Gratitude */}
+          {w.gratitude.entries.length > 0 && (
+            <GratitudeSection entries={w.gratitude.entries} year={year} />
+          )}
+
           {/* Featured quote */}
           {w.quotes.featured && (
             <section className="animate-fade-rise rounded-3xl bg-brand-900 p-8 text-center text-brand-50">
@@ -215,6 +247,41 @@ export function WrappedView() {
         </div>
       </Screen>
     </div>
+  );
+}
+
+function GratitudeSection({
+  entries,
+  year,
+}: {
+  entries: { date: string; text: string }[];
+  year: number;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? entries : entries.slice(-8);
+  return (
+    <section className="animate-fade-rise rounded-3xl bg-brand-700 p-6 text-brand-50">
+      <SectionLabel dark>Grateful for</SectionLabel>
+      <Big value={entries.length} label={`Things in ${year}`} dark />
+      <ul className="mt-4 space-y-1.5">
+        {visible.map((e) => (
+          <li key={e.date} className="flex items-baseline gap-3 text-sm">
+            <span className="shrink-0 text-[10px] uppercase tracking-wide text-brand-200">
+              {formatLongDate(e.date)}
+            </span>
+            <span className="min-w-0 text-brand-50">{e.text}</span>
+          </li>
+        ))}
+      </ul>
+      {entries.length > 8 && (
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-4 w-full rounded-lg border border-brand-500/60 py-2 text-xs font-semibold uppercase tracking-wide text-brand-100 hover:bg-brand-600/40"
+        >
+          {showAll ? "Show fewer" : `Show all ${entries.length}`}
+        </button>
+      )}
+    </section>
   );
 }
 
