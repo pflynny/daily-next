@@ -10,6 +10,7 @@ import { useAppData } from "@/state/AppDataProvider";
 import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
 import { RoutinesManager } from "@/features/routines/RoutinesManager";
 import { InstallButton } from "./InstallButton";
+import { NAV_ITEMS } from "@/shared/components/BottomNav";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
 
 function Section({
@@ -166,6 +167,27 @@ export function SettingsView() {
               checked={data.settings.showPanel}
               onChange={(v) => data.setSettings({ showPanel: v })}
             />
+          </Section>
+
+          {/* Navigation */}
+          <Section title="Navigation">
+            <p className="mb-2 text-sm text-muted">
+              On your phone, tuck tabs into a “More” menu to unclutter the
+              bottom bar.
+            </p>
+            {NAV_ITEMS.filter((i) => i.href !== "/").map((item) => (
+              <Toggle
+                key={item.href}
+                label={`${item.label} in More menu`}
+                checked={data.settings.navMore.includes(item.href)}
+                onChange={(v) => {
+                  const next = new Set(data.settings.navMore);
+                  if (v) next.add(item.href);
+                  else next.delete(item.href);
+                  data.setSettings({ navMore: [...next] });
+                }}
+              />
+            ))}
           </Section>
 
           {/* Data */}

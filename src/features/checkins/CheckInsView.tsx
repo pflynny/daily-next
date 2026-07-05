@@ -5,7 +5,7 @@ import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { formatLongDate, todayKey } from "@/lib/utils/date";
-import { MoonIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
+import { CheckIcon, ChevronDown, MoonIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
 import { useCheckIns } from "./useCheckIns";
 import { FeelingPicker } from "./FeelingPicker";
 import { TONE_OF } from "./feelings";
@@ -120,7 +120,15 @@ function TodayCard({ kind }: { kind: CheckInKind }) {
   const gratitude = existing?.gratitude ?? [];
   const isMorning = kind === "morning";
 
+  const done = feelings.length > 0 || gratitude.some((g) => g.trim());
+  // null = follow the default (done → collapsed); set once the user
+  // expands/collapses manually or starts editing, so the card doesn't
+  // snap shut mid check-in.
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+  const expanded = userExpanded ?? !done;
+
   function toggleFeeling(word: string) {
+    if (userExpanded === null) setUserExpanded(true);
     const next = feelings.includes(word)
       ? feelings.filter((w) => w !== word)
       : [...feelings, word];
@@ -128,47 +136,94 @@ function TodayCard({ kind }: { kind: CheckInKind }) {
   }
 
   function commitGratitude(index: number, text: string) {
+    if (userExpanded === null) setUserExpanded(true);
     const next = [gratitude[0] ?? "", gratitude[1] ?? "", gratitude[2] ?? ""];
     next[index] = text.trim();
     save(date, kind, { gratitude: next }, existing);
   }
 
+  const topGratitude = gratitude.find((g) => g.trim());
+
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
-      <div className="mb-3 flex items-center gap-2">
+    <section
+      className={cn(
+        "rounded-2xl border border-line bg-surface transition-opacity",
+        expanded ? "p-4" : "p-3 opacity-70 hover:opacity-100",
+      )}
+    >
+      <button
+        onClick={() => setUserExpanded(!expanded)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 text-left"
+      >
         {isMorning ? (
-          <SunIcon size={16} className="text-brand-500" />
+          <SunIcon size={16} className="shrink-0 text-brand-500" />
         ) : (
-          <MoonIcon size={16} className="text-brand-500" />
+          <MoonIcon size={16} className="shrink-0 text-brand-500" />
         )}
         <h2 className="text-sm font-semibold text-ink">
           {isMorning ? "Morning" : "Evening"}
         </h2>
-        <span className="text-xs text-faint">
-          {isMorning ? "How do you feel?" : "How was today?"}
-        </span>
-      </div>
+        {done ? (
+          <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+            <CheckIcon size={10} />
+          </span>
+        ) : (
+          <span className="text-xs text-faint">
+            {isMorning ? "How do you feel?" : "How was today?"}
+          </span>
+        )}
+        <ChevronDown
+          size={14}
+          className={cn(
+            "ml-auto shrink-0 text-faint transition-transform",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
 
-      <FeelingPicker selected={feelings} onToggle={toggleFeeling} />
+      {!expanded && done && (
+        <div className="mt-2 flex flex-wrap items-center gap-1 pl-6">
+          {feelings.map((w) => (
+            <span
+              key={w}
+              className="rounded-full bg-ink/5 px-2 py-0.5 text-[11px] text-muted"
+            >
+              {w}
+            </span>
+          ))}
+          {topGratitude && (
+            <span className="flex items-center gap-1 text-xs text-muted">
+              <StarIcon size={11} className="text-brand-500" /> {topGratitude}
+            </span>
+          )}
+        </div>
+      )}
 
-      {!isMorning && (
-        <div className="mt-4">
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-            Three good things from today
-          </div>
-          <div className="space-y-1.5">
-            {[0, 1, 2].map((i) => (
-              <GratitudeInput
-                key={`${date}-${i}`}
-                value={gratitude[i] ?? ""}
-                top={i === 0}
-                placeholder={
-                  i === 0 ? "The best thing…" : `Something else good…`
-                }
-                onCommit={(text) => commitGratitude(i, text)}
-              />
-            ))}
-          </div>
+      {expanded && (
+        <div className="mt-3">
+          <FeelingPicker selected={feelings} onToggle={toggleFeeling} />
+
+          {!isMorning && (
+            <div className="mt-4">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+                Three good things from today
+              </div>
+              <div className="space-y-1.5">
+                {[0, 1, 2].map((i) => (
+                  <GratitudeInput
+                    key={`${date}-${i}`}
+                    value={gratitude[i] ?? ""}
+                    top={i === 0}
+                    placeholder={
+                      i === 0 ? "The best thing…" : `Something else good…`
+                    }
+                    onCommit={(text) => commitGratitude(i, text)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

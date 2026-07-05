@@ -185,12 +185,15 @@ export interface AppSettings {
   showLists: boolean;
   showPanel: boolean;
   weekStartsOn: 0 | 1;
+  /** Tab hrefs tucked into the mobile “More” menu. */
+  navMore: string[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   showLists: true,
   showPanel: true,
   weekStartsOn: 1,
+  navMore: ["/year", "/wrapped"],
 };
 
 export interface Profile {
