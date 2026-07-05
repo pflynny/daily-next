@@ -97,8 +97,8 @@ export async function uploadMedia(file: File): Promise<UploadedMedia> {
         ...dims,
       };
     }
-  } catch {
-    // fall through to local fallback
+  } catch (err) {
+    console.error("R2 upload failed, falling back to inline storage", err);
   }
 
   if (file.size > LOCAL_FALLBACK_LIMIT) {

@@ -39,6 +39,9 @@ function getClient(config: R2Config): S3Client {
     client = new S3Client({
       region: "auto",
       endpoint: config.endpoint,
+      // R2 needs path-style URLs: bucket-as-subdomain hosts
+      // (bucket.account.r2.cloudflarestorage.com) don't resolve.
+      forcePathStyle: true,
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
@@ -54,7 +57,10 @@ export function isStorageConfigured(): boolean {
 
 export function publicUrl(key: string): string {
   const config = readConfig();
-  const host = config?.publicHost ?? "";
+  // Tolerate either "pub-xxx.r2.dev" or "https://pub-xxx.r2.dev/" in the env.
+  const host = (config?.publicHost ?? "")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
   return `https://${host}/${key}`;
 }
 
