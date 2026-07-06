@@ -120,6 +120,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const supabase = cloud ? getBrowserClient() : null;
   const supabaseRef = useRef(supabase);
   const userIdRef = useRef(userId);
+  // Cloud writes run one at a time, in call order — parent rows (memories,
+  // lists) must land before children (memory_media, list_items) or the
+  // foreign-key checks reject the child.
+  const writeQueue = useRef<Promise<unknown>>(Promise.resolve());
   // Keep refs current for the stable put/del/setSettings callbacks. Updated in
   // an effect (never during render) so reads stay pure.
   useEffect(() => {
@@ -222,12 +226,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (sb && uid) {
       const { table, toRow } = ENTITIES[key];
       const rows = items.map((item) => ({ ...toRow(item), user_id: uid }));
-      void sb
-        .from(table)
-        .upsert(rows)
-        .then(({ error }) => {
-          if (error) console.error(`upsert ${table} failed`, error);
-        });
+      const write = () =>
+        sb
+          .from(table)
+          .upsert(rows)
+          .then(({ error }) => {
+            if (error) console.error(`upsert ${table} failed`, error);
+          });
+      writeQueue.current = writeQueue.current.then(write, write);
     }
   }, []);
 
@@ -242,13 +248,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const uid = userIdRef.current;
     if (sb && uid) {
       const { table } = ENTITIES[key];
-      void sb
-        .from(table)
-        .delete()
-        .in("id", ids)
-        .then(({ error }) => {
-          if (error) console.error(`delete ${table} failed`, error);
-        });
+      const write = () =>
+        sb
+          .from(table)
+          .delete()
+          .in("id", ids)
+          .then(({ error }) => {
+            if (error) console.error(`delete ${table} failed`, error);
+          });
+      writeQueue.current = writeQueue.current.then(write, write);
     }
   }, []);
 
