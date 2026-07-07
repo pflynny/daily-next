@@ -26,7 +26,7 @@ import type { ListItem } from "@/types";
 
 export function ListsPanel() {
   const lists = useLists();
-  const { addTask } = useTasks();
+  const { addTask, deleteTask } = useTasks();
   const toast = useToast();
   const { groups } = lists;
 
@@ -59,6 +59,16 @@ export function ListsPanel() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
+
+  /** Move a dumped item onto today's list (undo restores it here). */
+  function doToday(item: ListItem) {
+    const taskId = addTask(todayKey(), item.text, false, item.notes);
+    const restoreItem = lists.deleteItem(item.id);
+    toast.undo("Moved to today", () => {
+      restoreItem();
+      if (taskId) deleteTask(taskId);
+    });
+  }
 
   function findItem(id: string): ListItem | null {
     for (const list of activeGroup?.lists ?? []) {
@@ -217,6 +227,7 @@ export function ListsPanel() {
                   const restore = lists.deleteItem(item.id);
                   toast.undo("Item deleted", restore);
                 }}
+                onDoTodayItem={doToday}
               />
             ))}
 
@@ -267,7 +278,7 @@ export function ListsPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    addTask(todayKey(), detailItem.text);
+                    doToday(detailItem);
                     setDetailItem(null);
                   }}
                   className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"

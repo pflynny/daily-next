@@ -24,6 +24,7 @@ interface ListColumnProps {
   onUpdateItemText: (item: ListItem, text: string) => void;
   onOpenItem: (item: ListItem) => void;
   onDeleteItem: (item: ListItem) => void;
+  onDoTodayItem: (item: ListItem) => void;
 }
 
 export function ListColumn({
@@ -38,6 +39,7 @@ export function ListColumn({
   onUpdateItemText,
   onOpenItem,
   onDeleteItem,
+  onDoTodayItem,
 }: ListColumnProps) {
   const [draft, setDraft] = useState("");
   const [editingName, setEditingName] = useState(false);
@@ -112,6 +114,7 @@ export function ListColumn({
               onUpdateText={onUpdateItemText}
               onOpenDetail={onOpenItem}
               onDelete={onDeleteItem}
+              onDoToday={onDoTodayItem}
             />
           ))}
         </SortableContext>
@@ -147,6 +150,7 @@ export function ListColumn({
                   onUpdateText={onUpdateItemText}
                   onOpenDetail={onOpenItem}
                   onDelete={onDeleteItem}
+                  onDoToday={onDoTodayItem}
                 />
               ))}
           </div>

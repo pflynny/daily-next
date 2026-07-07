@@ -49,9 +49,9 @@ export function useTasks() {
   );
 
   const addTask = useCallback(
-    (dateKey: string, text: string, isLabel = false) => {
+    (dateKey: string, text: string, isLabel = false, notes = ""): string | null => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed) return null;
       const { incomplete, completed } = getDay(dateKey);
       const task: Task = {
         id: newId(),
@@ -59,10 +59,11 @@ export function useTasks() {
         text: trimmed,
         completed: false,
         isLabel,
-        notes: "",
+        notes,
         position: 0,
       };
       commitDay(dateKey, [...incomplete, task, ...completed]);
+      return task.id;
     },
     [getDay, commitDay],
   );

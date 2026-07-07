@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
-import { CheckIcon, MoreIcon, NoteIcon, TrashIcon } from "@/shared/ui/icons";
+import { CheckIcon, MoreIcon, NoteIcon, TodayIcon, TrashIcon } from "@/shared/ui/icons";
 import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
 import type { ListItem } from "@/types";
 
@@ -15,6 +15,7 @@ interface ListItemRowProps {
   onUpdateText: (item: ListItem, text: string) => void;
   onOpenDetail: (item: ListItem) => void;
   onDelete: (item: ListItem) => void;
+  onDoToday: (item: ListItem) => void;
 }
 
 export function ListItemRow({
@@ -24,6 +25,7 @@ export function ListItemRow({
   onUpdateText,
   onOpenDetail,
   onDelete,
+  onDoToday,
 }: ListItemRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
@@ -108,6 +110,9 @@ export function ListItemRow({
             </button>
           }
         >
+          <DropdownItem onClick={() => onDoToday(item)}>
+            <TodayIcon size={13} /> Do today
+          </DropdownItem>
           <DropdownItem onClick={() => onOpenDetail(item)}>
             <NoteIcon size={13} /> {item.notes ? "Edit details" : "Add details"}
           </DropdownItem>
