@@ -13,40 +13,54 @@ function isHeic(file: File): boolean {
   return /^image\/hei[cf]/.test(file.type) || HEIC_EXT.test(file.name);
 }
 
-/**
- * Re-encode a HEIC photo as JPEG so every browser can display it.
- * Decoding uses the browser's own image support — Safari (where iPhone
- * uploads come from) reads HEIC natively; browsers that can't get a
- * clear error instead of a broken image.
- */
-async function heicToJpeg(file: File): Promise<File> {
+/** Decode via the browser's own image support (works in Safari). */
+async function decodeHeicNatively(file: File): Promise<Blob | null> {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = await new Promise<HTMLImageElement | null>((resolve) => {
       const el = new Image();
       el.onload = () => resolve(el);
-      el.onerror = () =>
-        reject(
-          new Error(
-            "This browser can't read HEIC photos — upload from your iPhone, or convert to JPEG first.",
-          ),
-        );
+      el.onerror = () => resolve(null);
       el.src = url;
     });
+    if (!img) return null;
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     canvas.getContext("2d")!.drawImage(img, 0, 0);
-    const blob = await new Promise<Blob | null>((resolve) =>
+    return await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", 0.9),
     );
-    if (!blob) throw new Error("Could not convert HEIC photo");
-    return new File([blob], file.name.replace(HEIC_EXT, ".jpg"), {
-      type: "image/jpeg",
-    });
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/**
+ * Re-encode a HEIC photo as JPEG so every browser can display it.
+ * Safari decodes HEIC natively; Chrome/Android and others fall back to
+ * a lazy-loaded wasm decoder (heic2any).
+ */
+async function heicToJpeg(file: File): Promise<File> {
+  let blob = await decodeHeicNatively(file);
+  if (!blob) {
+    try {
+      const { default: heic2any } = await import("heic2any");
+      const out = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.9,
+      });
+      blob = Array.isArray(out) ? out[0] : out;
+    } catch {
+      throw new Error(
+        "Could not convert this HEIC photo — try saving it as JPEG first.",
+      );
+    }
+  }
+  return new File([blob], file.name.replace(HEIC_EXT, ".jpg"), {
+    type: "image/jpeg",
+  });
 }
 
 function getImageSize(
