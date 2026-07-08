@@ -165,6 +165,16 @@ export interface LikedQuote extends Quote {
   createdAt: string;
 }
 
+/* ---------------------------- Notes -------------------------------- */
+export interface Note {
+  id: string;
+  title: string;
+  /** Markdown */
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /* -------------------------- Check-ins ----------------------------- */
 export type CheckInKind = "morning" | "evening";
 
@@ -193,7 +203,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showLists: true,
   showPanel: true,
   weekStartsOn: 1,
-  navMore: ["/year", "/wrapped"],
+  navMore: ["/year", "/wrapped", "/notes"],
 };
 
 export interface Profile {

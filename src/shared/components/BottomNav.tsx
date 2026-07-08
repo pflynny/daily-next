@@ -11,6 +11,7 @@ import {
   TargetIcon,
   ImagesIcon,
   MoreIcon,
+  NoteIcon,
   SmileIcon,
   StackIcon,
   SparkleIcon,
@@ -24,6 +25,7 @@ export const NAV_ITEMS = [
   { href: "/memories", label: "Memories", Icon: ImagesIcon },
   { href: "/year", label: "Year", Icon: StackIcon },
   { href: "/wrapped", label: "Wrapped", Icon: SparkleIcon },
+  { href: "/notes", label: "Notes", Icon: NoteIcon },
   { href: "/settings", label: "Settings", Icon: SettingsIcon },
 ] as const;
 

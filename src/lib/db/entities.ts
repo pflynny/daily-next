@@ -11,6 +11,7 @@ import type {
   Memory,
   MemoryMedia,
   LikedQuote,
+  Note,
   CheckIn,
   CheckInKind,
   CollectionMediaType,
@@ -33,7 +34,8 @@ export type StateKey =
   | "memories"
   | "memoryMedia"
   | "likedQuotes"
-  | "checkIns";
+  | "checkIns"
+  | "notes";
 
 export interface EntityState {
   tasks: Task[];
@@ -49,6 +51,7 @@ export interface EntityState {
   memoryMedia: MemoryMedia[];
   likedQuotes: LikedQuote[];
   checkIns: CheckIn[];
+  notes: Note[];
 }
 
 export const EMPTY_STATE: EntityState = {
@@ -65,6 +68,7 @@ export const EMPTY_STATE: EntityState = {
   memoryMedia: [],
   likedQuotes: [],
   checkIns: [],
+  notes: [],
 };
 
 interface EntityConfig {
@@ -334,6 +338,24 @@ export const ENTITIES: Record<StateKey, EntityConfig> = {
       text: str(r.text),
       author: str(r.author),
       createdAt: str(r.created_at),
+    }),
+  },
+  notes: {
+    table: "notes",
+    orderBy: "updated_at",
+    toRow: (n: Note) => ({
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      created_at: n.createdAt,
+      updated_at: n.updatedAt,
+    }),
+    fromRow: (r): Note => ({
+      id: str(r.id),
+      title: str(r.title),
+      body: str(r.body),
+      createdAt: str(r.created_at),
+      updatedAt: str(r.updated_at),
     }),
   },
   checkIns: {
