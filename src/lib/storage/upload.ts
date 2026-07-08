@@ -7,6 +7,48 @@ export type UploadedMedia = Pick<
 
 const LOCAL_FALLBACK_LIMIT = 8 * 1024 * 1024; // 8 MB
 
+const HEIC_EXT = /\.(heic|heif)$/i;
+
+function isHeic(file: File): boolean {
+  return /^image\/hei[cf]/.test(file.type) || HEIC_EXT.test(file.name);
+}
+
+/**
+ * Re-encode a HEIC photo as JPEG so every browser can display it.
+ * Decoding uses the browser's own image support — Safari (where iPhone
+ * uploads come from) reads HEIC natively; browsers that can't get a
+ * clear error instead of a broken image.
+ */
+async function heicToJpeg(file: File): Promise<File> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () =>
+        reject(
+          new Error(
+            "This browser can't read HEIC photos — upload from your iPhone, or convert to JPEG first.",
+          ),
+        );
+      el.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext("2d")!.drawImage(img, 0, 0);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.9),
+    );
+    if (!blob) throw new Error("Could not convert HEIC photo");
+    return new File([blob], file.name.replace(HEIC_EXT, ".jpg"), {
+      type: "image/jpeg",
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function getImageSize(
   file: File,
 ): Promise<{ width: number | null; height: number | null }> {
@@ -58,10 +100,11 @@ function readDataUrl(file: File): Promise<string> {
  * is configured and the user is signed in; otherwise falls back to an inline
  * data URL so the timeline still works offline / in guest mode.
  */
-export async function uploadMedia(file: File): Promise<UploadedMedia> {
-  const kind: "image" | "video" = file.type.startsWith("video")
+export async function uploadMedia(input: File): Promise<UploadedMedia> {
+  const kind: "image" | "video" = input.type.startsWith("video")
     ? "video"
     : "image";
+  const file = kind === "image" && isHeic(input) ? await heicToJpeg(input) : input;
   const dims =
     kind === "video" ? await getVideoSize(file) : await getImageSize(file);
 
