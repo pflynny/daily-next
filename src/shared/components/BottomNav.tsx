@@ -31,6 +31,16 @@ export const NAV_ITEMS = [
 
 export type NavItem = (typeof NAV_ITEMS)[number];
 
+/** NAV_ITEMS sorted by the user's saved order; unlisted tabs keep default order. */
+export function orderNavItems(order: string[]): NavItem[] {
+  const byHref = new Map<string, NavItem>(NAV_ITEMS.map((i) => [i.href, i]));
+  const listed = order
+    .map((href) => byHref.get(href))
+    .filter((i): i is NavItem => !!i);
+  const rest = NAV_ITEMS.filter((i) => !order.includes(i.href));
+  return [...listed, ...rest];
+}
+
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
@@ -77,12 +87,13 @@ export function BottomNav() {
 
   useEffect(() => setMoreOpen(false), [pathname]);
 
+  const ordered = orderNavItems(settings.navOrder);
   const moreSet = new Set(settings.navMore);
   const collapse = !isDesktop && settings.navMore.length > 0;
   const barItems = collapse
-    ? NAV_ITEMS.filter((i) => !moreSet.has(i.href))
-    : [...NAV_ITEMS];
-  const moreItems = collapse ? NAV_ITEMS.filter((i) => moreSet.has(i.href)) : [];
+    ? ordered.filter((i) => !moreSet.has(i.href))
+    : ordered;
+  const moreItems = collapse ? ordered.filter((i) => moreSet.has(i.href)) : [];
   const moreActive = moreItems.some((i) => isActive(pathname, i.href));
 
   return (

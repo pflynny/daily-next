@@ -10,7 +10,8 @@ import { useAppData } from "@/state/AppDataProvider";
 import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
 import { RoutinesManager } from "@/features/routines/RoutinesManager";
 import { InstallButton } from "./InstallButton";
-import { NAV_ITEMS } from "@/shared/components/BottomNav";
+import { orderNavItems } from "@/shared/components/BottomNav";
+import { ChevronUp, ChevronDown } from "@/shared/ui/icons";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
 
 function Section({
@@ -171,23 +172,84 @@ export function SettingsView() {
 
           {/* Navigation */}
           <Section title="Navigation">
-            <p className="mb-2 text-sm text-muted">
-              On your phone, tuck tabs into a “More” menu to unclutter the
-              bottom bar.
+            <p className="mb-3 text-sm text-muted">
+              Reorder tabs with the arrows. On your phone, the toggle tucks a
+              tab into a “More” menu to unclutter the bottom bar.
             </p>
-            {NAV_ITEMS.filter((i) => i.href !== "/").map((item) => (
-              <Toggle
-                key={item.href}
-                label={`${item.label} in More menu`}
-                checked={data.settings.navMore.includes(item.href)}
-                onChange={(v) => {
-                  const next = new Set(data.settings.navMore);
-                  if (v) next.add(item.href);
-                  else next.delete(item.href);
-                  data.setSettings({ navMore: [...next] });
-                }}
-              />
-            ))}
+            {(() => {
+              const ordered = orderNavItems(data.settings.navOrder);
+              function move(href: string, dir: -1 | 1) {
+                const hrefs: string[] = ordered.map((i) => i.href);
+                const idx = hrefs.indexOf(href);
+                const j = idx + dir;
+                if (j < 0 || j >= hrefs.length) return;
+                [hrefs[idx], hrefs[j]] = [hrefs[j], hrefs[idx]];
+                data.setSettings({ navOrder: hrefs });
+              }
+              return ordered.map((item, idx) => (
+                <div
+                  key={item.href}
+                  className="flex items-center justify-between gap-2 py-1"
+                >
+                  <div className="flex items-center gap-1 text-faint">
+                    <button
+                      onClick={() => move(item.href, -1)}
+                      disabled={idx === 0}
+                      aria-label={`Move ${item.label} up`}
+                      className="rounded p-1 hover:text-ink disabled:opacity-30"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      onClick={() => move(item.href, 1)}
+                      disabled={idx === ordered.length - 1}
+                      aria-label={`Move ${item.label} down`}
+                      className="rounded p-1 hover:text-ink disabled:opacity-30"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                    <item.Icon size={15} className="ml-1 text-muted" />
+                    <span className="ml-1 text-sm text-ink">{item.label}</span>
+                  </div>
+                  {item.href !== "/" ? (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={data.settings.navMore.includes(item.href)}
+                      aria-label={`${item.label} in More menu`}
+                      onClick={() => {
+                        const next = new Set(data.settings.navMore);
+                        if (next.has(item.href)) next.delete(item.href);
+                        else next.add(item.href);
+                        data.setSettings({ navMore: [...next] });
+                      }}
+                      className={cn(
+                        "relative h-6 w-10 shrink-0 overflow-hidden rounded-full transition-colors",
+                        data.settings.navMore.includes(item.href)
+                          ? "bg-brand-600"
+                          : "bg-line",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 size-5 rounded-full bg-[white] transition-transform",
+                          data.settings.navMore.includes(item.href)
+                            ? "translate-x-[18px]"
+                            : "translate-x-0.5",
+                        )}
+                      />
+                    </button>
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-wide text-faint">
+                      Always shown
+                    </span>
+                  )}
+                </div>
+              ));
+            })()}
+            <p className="mt-2 text-xs text-faint">
+              Toggle on = tab lives in the More menu on mobile.
+            </p>
           </Section>
 
           {/* Data */}

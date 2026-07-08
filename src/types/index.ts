@@ -197,6 +197,8 @@ export interface AppSettings {
   weekStartsOn: 0 | 1;
   /** Tab hrefs tucked into the mobile “More” menu. */
   navMore: string[];
+  /** Tab hrefs in display order; tabs not listed follow in default order. */
+  navOrder: string[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -204,6 +206,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showPanel: true,
   weekStartsOn: 1,
   navMore: ["/year", "/wrapped", "/notes"],
+  navOrder: [],
 };
 
 export interface Profile {
