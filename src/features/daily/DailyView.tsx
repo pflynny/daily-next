@@ -95,6 +95,7 @@ export function DailyView() {
   }
 
   function handleDragStart(e: DragStartEvent) {
+    if (e.active.data.current?.type !== "task") return;
     const date = e.active.data.current?.date as string | undefined;
     if (!date) return;
     const found = getDay(date).all.find((t) => t.id === String(e.active.id));
@@ -102,6 +103,7 @@ export function DailyView() {
   }
 
   function handleDragEnd(e: DragEndEvent) {
+    if (e.active.data.current?.type !== "task") return; // list items handled in ListsPanel
     setActiveTask(null);
     const { active, over } = e;
     if (!over) return;
@@ -297,27 +299,28 @@ export function DailyView() {
             </div>
           ) : null}
         </DragOverlay>
-      </DndContext>
 
-      {/* Lists panel — collapsible on desktop, a sheet on mobile */}
-      {isDesktop && showLists && (
-        <section className="thin-scrollbar max-h-[42vh] flex-none overflow-y-auto border-t border-line bg-sand/40">
-          <ListsPanel />
-        </section>
-      )}
-
-      {!isDesktop && (
-        <Sheet
-          open={listsSheet}
-          onClose={() => setListsSheet(false)}
-          title="Lists"
-          size="lg"
-        >
-          <div className="-mx-5">
+        {/* Lists panel — collapsible on desktop, a sheet on mobile.
+            Inside the DndContext so list items can be dragged onto days. */}
+        {isDesktop && showLists && (
+          <section className="thin-scrollbar max-h-[42vh] flex-none overflow-y-auto border-t border-line bg-sand/40">
             <ListsPanel />
-          </div>
-        </Sheet>
-      )}
+          </section>
+        )}
+
+        {!isDesktop && (
+          <Sheet
+            open={listsSheet}
+            onClose={() => setListsSheet(false)}
+            title="Lists"
+            size="lg"
+          >
+            <div className="-mx-5">
+              <ListsPanel />
+            </div>
+          </Sheet>
+        )}
+      </DndContext>
 
       {/* Quote + BTC panel */}
       {showPanel ? (

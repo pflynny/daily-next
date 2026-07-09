@@ -2,18 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  DndContext,
   DragOverlay,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
+  useDndMonitor,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
-import { todayKey } from "@/lib/utils/date";
+import { formatLongDate, todayKey } from "@/lib/utils/date";
 import { Sheet } from "@/shared/ui/Sheet";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
@@ -56,18 +52,20 @@ export function ListsPanel() {
     [groups, activeGroupId],
   );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  );
-
-  /** Move a dumped item onto today's list (undo restores it here). */
-  function doToday(item: ListItem) {
-    const taskId = addTask(todayKey(), item.text, false, item.notes);
+  /** Move a dumped item onto a day's task list (undo restores it here). */
+  function moveToDay(item: ListItem, dateKey: string) {
+    const taskId = addTask(dateKey, item.text, false, item.notes);
     const restoreItem = lists.deleteItem(item.id);
-    toast.undo("Moved to today", () => {
+    const label =
+      dateKey === todayKey() ? "Moved to today" : `Moved to ${formatLongDate(dateKey)}`;
+    toast.undo(label, () => {
       restoreItem();
       if (taskId) deleteTask(taskId);
     });
+  }
+
+  function doToday(item: ListItem) {
+    moveToDay(item, todayKey());
   }
 
   function findItem(id: string): ListItem | null {
@@ -78,34 +76,53 @@ export function ListsPanel() {
     return null;
   }
 
-  function handleDragStart(e: DragStartEvent) {
-    setActiveItem(findItem(String(e.active.id)));
-  }
+  // Drags are owned by the DailyView-level DndContext; this monitor picks
+  // up only list-item drags (task drags are handled up there).
+  useDndMonitor({
+    onDragStart(e: DragStartEvent) {
+      if (e.active.data.current?.type !== "listItem") return;
+      setActiveItem(findItem(String(e.active.id)));
+    },
+    onDragCancel() {
+      setActiveItem(null);
+    },
+    onDragEnd(e: DragEndEvent) {
+      if (e.active.data.current?.type !== "listItem") return;
+      setActiveItem(null);
+      const { active, over } = e;
+      if (!over || !activeGroup) return;
+      const activeId = String(active.id);
+      const overId = String(over.id);
+      const overData = over.data.current as
+        | { type?: string; listId?: string; date?: string }
+        | undefined;
 
-  function handleDragEnd(e: DragEndEvent) {
-    setActiveItem(null);
-    const { active, over } = e;
-    if (!over || !activeGroup) return;
-    const fromListId = active.data.current?.listId as string | undefined;
-    const toListId = over.data.current?.listId as string | undefined;
-    if (!fromListId || !toListId) return;
-    const activeId = String(active.id);
-    const overId = String(over.id);
+      // Dropped on a day column (or a task inside one) → becomes a task there.
+      if (overData?.date) {
+        const item = findItem(activeId);
+        if (item) moveToDay(item, overData.date);
+        return;
+      }
 
-    if (fromListId === toListId) {
-      const list = activeGroup.lists.find((l) => l.id === fromListId);
-      if (!list) return;
-      const incomplete = list.items.filter((i) => !i.completed);
-      const oldIndex = incomplete.findIndex((i) => i.id === activeId);
-      let newIndex = incomplete.findIndex((i) => i.id === overId);
-      if (newIndex === -1) newIndex = incomplete.length - 1;
-      if (oldIndex === -1 || oldIndex === newIndex) return;
-      lists.reorderItems(fromListId, arrayMove(incomplete, oldIndex, newIndex));
-    } else {
-      const overIsItem = over.data.current?.type === "listItem";
-      lists.moveItem(activeId, toListId, overIsItem ? overId : null);
-    }
-  }
+      const fromListId = active.data.current?.listId as string | undefined;
+      const toListId = overData?.listId;
+      if (!fromListId || !toListId) return;
+
+      if (fromListId === toListId) {
+        const list = activeGroup.lists.find((l) => l.id === fromListId);
+        if (!list) return;
+        const incomplete = list.items.filter((i) => !i.completed);
+        const oldIndex = incomplete.findIndex((i) => i.id === activeId);
+        let newIndex = incomplete.findIndex((i) => i.id === overId);
+        if (newIndex === -1) newIndex = incomplete.length - 1;
+        if (oldIndex === -1 || oldIndex === newIndex) return;
+        lists.reorderItems(fromListId, arrayMove(incomplete, oldIndex, newIndex));
+      } else {
+        const overIsItem = overData?.type === "listItem";
+        lists.moveItem(activeId, toListId, overIsItem ? overId : null);
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col">
@@ -199,12 +216,7 @@ export function ListsPanel() {
           No lists yet. Add a tab above to start a brain dump.
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
+        <>
           <div className="thin-scrollbar flex gap-6 overflow-x-auto px-4 py-3">
             {activeGroup.lists.map((list, idx) => (
               <ListColumn
@@ -254,7 +266,7 @@ export function ListsPanel() {
               </div>
             ) : null}
           </DragOverlay>
-        </DndContext>
+        </>
       )}
 
       {/* Item detail */}
