@@ -117,6 +117,19 @@ function NoteEditor({
   const [body, setBody] = useState(note.body);
   const [preview, setPreview] = useState(false);
   const saved = useRef({ title: note.title, body: note.body });
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow the textarea with its content so the page scrolls (scrollbar at
+  // the window edge) instead of the textarea scrolling internally.
+  function autosize() {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+  useEffect(() => {
+    autosize();
+  }, [preview]);
 
   // Debounced auto-save while typing.
   useEffect(() => {
@@ -135,7 +148,7 @@ function NoteEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-line px-3 py-2.5">
+      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-paper/95 px-3 py-2.5 backdrop-blur">
         <button
           onClick={onBack}
           aria-label="Back to notes"
@@ -179,7 +192,7 @@ function NoteEditor({
       </header>
 
       <Screen>
-        <div className="mx-auto flex min-h-full max-w-2xl flex-col p-4">
+        <div className="mx-auto max-w-2xl p-4">
           {preview ? (
             body.trim() ? (
               <Markdown>{body}</Markdown>
@@ -188,11 +201,15 @@ function NoteEditor({
             )
           ) : (
             <textarea
+              ref={taRef}
               autoFocus
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                autosize();
+              }}
               placeholder={"Write in markdown…\n\n# Heading\n- list item\n- [ ] todo\n**bold** and [links](https://example.com)"}
-              className="min-h-[60vh] w-full flex-1 resize-none bg-transparent font-mono text-sm leading-relaxed text-ink outline-none placeholder:text-faint/60"
+              className="min-h-[75vh] w-full resize-none overflow-hidden bg-transparent font-mono text-sm leading-relaxed text-ink outline-none placeholder:text-faint/60"
             />
           )}
         </div>
