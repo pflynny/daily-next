@@ -10,6 +10,7 @@ import { useAppData } from "@/state/AppDataProvider";
 import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
 import { RoutinesManager } from "@/features/routines/RoutinesManager";
 import { InstallButton } from "./InstallButton";
+import { RemindersSection } from "./RemindersSection";
 import { orderNavItems } from "@/shared/components/BottomNav";
 import { ChevronUp, ChevronDown } from "@/shared/ui/icons";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
@@ -294,6 +295,11 @@ export function SettingsView() {
           {/* App */}
           <Section title="App">
             <InstallButton />
+          </Section>
+
+          {/* Reminders */}
+          <Section title="Check-in reminders">
+            <RemindersSection />
           </Section>
 
           {/* Integrations */}
