@@ -13,6 +13,7 @@ import { InstallButton } from "./InstallButton";
 import { RemindersSection } from "./RemindersSection";
 import { orderNavItems } from "@/shared/components/BottomNav";
 import { ChevronUp, ChevronDown } from "@/shared/ui/icons";
+import { Switch } from "@/shared/ui/Switch";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
 
 function Section({
@@ -42,25 +43,9 @@ function Toggle({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between py-1.5">
-      <span className="text-sm text-ink">{label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative h-6 w-10 overflow-hidden rounded-full transition-colors",
-          checked ? "bg-brand-600" : "bg-line",
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-[white] transition-transform",
-            checked ? "translate-x-[18px]" : "translate-x-0.5",
-          )}
-        />
-      </button>
+    <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+      <span className="min-w-0 text-sm text-ink">{label}</span>
+      <Switch checked={checked} onChange={onChange} ariaLabel={label} />
     </label>
   );
 }
@@ -213,33 +198,16 @@ export function SettingsView() {
                     <span className="ml-1 text-sm text-ink">{item.label}</span>
                   </div>
                   {item.href !== "/" ? (
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={data.settings.navMore.includes(item.href)}
-                      aria-label={`${item.label} in More menu`}
-                      onClick={() => {
+                    <Switch
+                      checked={data.settings.navMore.includes(item.href)}
+                      ariaLabel={`${item.label} in More menu`}
+                      onChange={() => {
                         const next = new Set(data.settings.navMore);
                         if (next.has(item.href)) next.delete(item.href);
                         else next.add(item.href);
                         data.setSettings({ navMore: [...next] });
                       }}
-                      className={cn(
-                        "relative h-6 w-10 shrink-0 overflow-hidden rounded-full transition-colors",
-                        data.settings.navMore.includes(item.href)
-                          ? "bg-brand-600"
-                          : "bg-line",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "absolute top-0.5 size-5 rounded-full bg-[white] transition-transform",
-                          data.settings.navMore.includes(item.href)
-                            ? "translate-x-[18px]"
-                            : "translate-x-0.5",
-                        )}
-                      />
-                    </button>
+                    />
                   ) : (
                     <span className="text-[10px] uppercase tracking-wide text-faint">
                       Always shown
