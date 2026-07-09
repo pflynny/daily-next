@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/shared/ui/Sheet";
-import type { Memory } from "@/types";
+import { cn } from "@/lib/utils/cn";
+import { UploadIcon, XIcon } from "@/shared/ui/icons";
+import { uploadMedia, type UploadedMedia } from "@/lib/storage/upload";
+import type { Memory, MemoryView } from "@/types";
+
+export interface MediaChanges {
+  removeIds: string[];
+  add: UploadedMedia[];
+}
 
 interface MemoryEditSheetProps {
-  memory: Memory | null;
+  memory: MemoryView | null;
   onClose: () => void;
-  onSave: (memory: Memory, patch: Partial<Memory>) => void;
+  onSave: (memory: MemoryView, patch: Partial<Memory>, media: MediaChanges) => void;
 }
 
 export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProps) {
@@ -16,6 +24,11 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
   const [body, setBody] = useState("");
   const [author, setAuthor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [removeIds, setRemoveIds] = useState<string[]>([]);
+  const [newMedia, setNewMedia] = useState<UploadedMedia[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (memory) {
@@ -24,20 +37,49 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
       setBody(memory.body);
       setAuthor(memory.quoteAuthor);
       setLinkUrl(memory.linkUrl);
+      setRemoveIds([]);
+      setNewMedia([]);
+      setError(null);
     }
   }, [memory]);
 
   if (!memory) return null;
 
+  const showMedia =
+    memory.type === "photo" || memory.type === "video" || memory.media.length > 0;
+  const keptMedia = memory.media.filter((m) => !removeIds.includes(m.id));
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const uploaded: UploadedMedia[] = [];
+      for (const file of Array.from(files)) {
+        uploaded.push(await uploadMedia(file));
+      }
+      setNewMedia((prev) => [...prev, ...uploaded]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   function save() {
-    if (!memory) return;
-    onSave(memory, {
-      occurredOn,
-      title: title.trim(),
-      body: body.trim(),
-      quoteAuthor: author.trim(),
-      linkUrl: linkUrl.trim(),
-    });
+    if (!memory || uploading) return;
+    onSave(
+      memory,
+      {
+        occurredOn,
+        title: title.trim(),
+        body: body.trim(),
+        quoteAuthor: author.trim(),
+        linkUrl: linkUrl.trim(),
+      },
+      { removeIds, add: newMedia },
+    );
     onClose();
   }
 
@@ -56,9 +98,10 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
           </button>
           <button
             onClick={save}
-            className="rounded-lg bg-brand-700 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800"
+            disabled={uploading}
+            className="rounded-lg bg-brand-700 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800 disabled:opacity-50"
           >
-            Save
+            {uploading ? "Uploading…" : "Save"}
           </button>
         </div>
       }
@@ -93,10 +136,56 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
         />
       )}
 
+      {showMedia && (
+        <div className="mb-3">
+          {(keptMedia.length > 0 || newMedia.length > 0) && (
+            <div className="mb-2 grid grid-cols-3 gap-2">
+              {keptMedia.map((m) => (
+                <MediaThumb
+                  key={m.id}
+                  url={m.url}
+                  kind={m.kind}
+                  onRemove={() => setRemoveIds((prev) => [...prev, m.id])}
+                />
+              ))}
+              {newMedia.map((m, i) => (
+                <MediaThumb
+                  key={`new-${i}`}
+                  url={m.url}
+                  kind={m.kind}
+                  isNew
+                  onRemove={() =>
+                    setNewMedia((prev) => prev.filter((_, j) => j !== i))
+                  }
+                />
+              ))}
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={memory.type === "video" ? "video/*" : "image/*"}
+            multiple
+            onChange={(e) => handleFiles(e.target.files)}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 px-4 py-3 text-sm text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+          >
+            <UploadIcon size={16} />
+            {uploading
+              ? "Uploading…"
+              : `Add ${memory.type === "video" ? "video" : "photos"}`}
+          </button>
+        </div>
+      )}
+
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        rows={memory.type === "quote" ? 4 : 4}
+        rows={4}
         placeholder={memory.type === "quote" ? "The quote…" : "Caption / notes"}
         className={
           memory.type === "quote"
@@ -113,6 +202,47 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
           className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
         />
       )}
+
+      {error && (
+        <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+          {error}
+        </p>
+      )}
     </Sheet>
+  );
+}
+
+function MediaThumb({
+  url,
+  kind,
+  isNew,
+  onRemove,
+}: {
+  url: string;
+  kind: "image" | "video";
+  isNew?: boolean;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative aspect-square overflow-hidden rounded-lg border bg-sand",
+        isNew ? "border-brand-400" : "border-line",
+      )}
+    >
+      {kind === "video" ? (
+        <video src={url} className="size-full object-cover" />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="" className="size-full object-cover" />
+      )}
+      <button
+        onClick={onRemove}
+        aria-label="Remove media"
+        className="absolute right-1 top-1 rounded-full bg-ink/60 p-1 text-white hover:bg-danger"
+      >
+        <XIcon size={12} />
+      </button>
+    </div>
   );
 }

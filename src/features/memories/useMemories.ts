@@ -80,6 +80,34 @@ export function useMemories() {
     [put],
   );
 
+  /** Apply staged media edits: remove rows by id, append newly uploaded files. */
+  const setMemoryMedia = useCallback(
+    (memoryId: string, removeIds: string[], add: UploadedMedia[]) => {
+      if (removeIds.length) del("memoryMedia", removeIds);
+      if (add.length) {
+        const keep = memoryMedia.filter(
+          (m) => m.memoryId === memoryId && !removeIds.includes(m.id),
+        );
+        put(
+          "memoryMedia",
+          add.map((m, i) => ({
+            id: newId(),
+            memoryId,
+            kind: m.kind,
+            url: m.url,
+            key: m.key,
+            width: m.width,
+            height: m.height,
+            mime: m.mime,
+            size: m.size,
+            position: keep.length + i,
+          })),
+        );
+      }
+    },
+    [memoryMedia, del, put],
+  );
+
   const deleteMemory = useCallback(
     (memoryId: string) => {
       const memory = memories.find((m) => m.id === memoryId);
@@ -94,5 +122,5 @@ export function useMemories() {
     [memories, memoryMedia, del, put],
   );
 
-  return { timeline, byYear, addMemory, updateMemory, deleteMemory };
+  return { timeline, byYear, addMemory, updateMemory, setMemoryMedia, deleteMemory };
 }

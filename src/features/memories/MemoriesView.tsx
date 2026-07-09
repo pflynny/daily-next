@@ -11,7 +11,7 @@ import { useMemories } from "./useMemories";
 import { MemoryCard } from "./MemoryCard";
 import { AddMemorySheet } from "./AddMemorySheet";
 import { MemoryEditSheet } from "./MemoryEditSheet";
-import type { Memory, MemoryType, MemoryView } from "@/types";
+import type { MemoryType, MemoryView } from "@/types";
 
 const FILTERS: { value: "all" | MemoryType; label: string }[] = [
   { value: "all", label: "All" },
@@ -23,12 +23,12 @@ const FILTERS: { value: "all" | MemoryType; label: string }[] = [
 ];
 
 export function MemoriesView() {
-  const { byYear, timeline, addMemory, updateMemory, deleteMemory } =
+  const { byYear, timeline, addMemory, updateMemory, setMemoryMedia, deleteMemory } =
     useMemories();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<"all" | MemoryType>("all");
-  const [editMemory, setEditMemory] = useState<Memory | null>(null);
+  const [editMemory, setEditMemory] = useState<MemoryView | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MemoryView | null>(null);
 
   const filteredByYear =
@@ -130,7 +130,10 @@ export function MemoriesView() {
       <MemoryEditSheet
         memory={editMemory}
         onClose={() => setEditMemory(null)}
-        onSave={updateMemory}
+        onSave={(memory, patch, media) => {
+          updateMemory(memory, patch);
+          setMemoryMedia(memory.id, media.removeIds, media.add);
+        }}
       />
 
       <ConfirmDialog

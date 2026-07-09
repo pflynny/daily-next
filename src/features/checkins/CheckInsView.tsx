@@ -5,7 +5,7 @@ import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { formatLongDate, todayKey } from "@/lib/utils/date";
-import { CheckIcon, ChevronDown, MoonIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
+import { CheckIcon, ChevronDown, MoonIcon, PencilIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
 import { useCheckIns } from "./useCheckIns";
 import { FeelingPicker } from "./FeelingPicker";
 import { TONE_OF } from "./feelings";
@@ -18,6 +18,7 @@ export function CheckInsView() {
   const today = todayKey();
   const [filter, setFilter] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [editDate, setEditDate] = useState<string | null>(null);
 
   // Feelings that actually appear in history, most frequent first.
   const usedFeelings = useMemo(() => {
@@ -50,15 +51,25 @@ export function CheckInsView() {
       <PageHeader title="CHECK-INS" />
       <Screen>
         <div className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
-          <TodayCard kind="morning" />
-          <TodayCard kind="evening" />
+          <DayCard date={today} kind="morning" />
+          <DayCard date={today} kind="evening" />
 
-          {history.some((d) => d.date !== today) && (
-            <section>
-              <div className="mb-2 mt-6 flex items-center justify-between gap-3">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-500">
-                  History
-                </h2>
+          <section>
+            <div className="mb-2 mt-6 flex items-center justify-between gap-3">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-500">
+                History
+              </h2>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  max={today}
+                  value={editDate ?? ""}
+                  onChange={(e) => {
+                    if (e.target.value) setEditDate(e.target.value);
+                  }}
+                  aria-label="Add or edit a past day"
+                  className="rounded-lg border border-line bg-paper px-2 py-1 text-xs text-muted outline-none focus:border-brand-400"
+                />
                 {usedFeelings.length > 0 && (
                   <select
                     value={filter}
@@ -77,44 +88,72 @@ export function CheckInsView() {
                   </select>
                 )}
               </div>
+            </div>
 
-              <div className="space-y-3">
-                {pastDays.slice(0, limit).map((day) => (
-                  <HistoryDay
-                    key={day.date}
-                    date={day.date}
-                    morning={day.morning}
-                    evening={day.evening}
-                  />
-                ))}
+            {editDate && editDate !== today && (
+              <div className="mb-4 rounded-2xl border border-brand-300 bg-brand-50/40 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-brand-700">
+                    {formatLongDate(editDate)}
+                  </span>
+                  <button
+                    onClick={() => setEditDate(null)}
+                    className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted hover:text-ink"
+                  >
+                    Done
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <DayCard date={editDate} kind="morning" startExpanded />
+                  <DayCard date={editDate} kind="evening" startExpanded />
+                </div>
               </div>
+            )}
 
-              {pastDays.length > limit && (
-                <button
-                  onClick={() => setLimit((n) => n + PAGE_SIZE)}
-                  className="mt-4 w-full rounded-lg border border-line py-2 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
-                >
-                  Show more
-                </button>
-              )}
-              {pastDays.length === 0 && (
-                <p className="py-6 text-center text-sm text-faint">
-                  No days match that feeling yet.
-                </p>
-              )}
-            </section>
-          )}
+            <div className="space-y-3">
+              {pastDays.slice(0, limit).map((day) => (
+                <HistoryDay
+                  key={day.date}
+                  date={day.date}
+                  morning={day.morning}
+                  evening={day.evening}
+                  onEdit={() => setEditDate(day.date)}
+                />
+              ))}
+            </div>
+
+            {pastDays.length > limit && (
+              <button
+                onClick={() => setLimit((n) => n + PAGE_SIZE)}
+                className="mt-4 w-full rounded-lg border border-line py-2 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
+              >
+                Show more
+              </button>
+            )}
+            {pastDays.length === 0 && history.some((d) => d.date !== today) && (
+              <p className="py-6 text-center text-sm text-faint">
+                No days match that feeling yet.
+              </p>
+            )}
+          </section>
         </div>
       </Screen>
     </div>
   );
 }
 
-/* ------------------------- Today's cards -------------------------- */
+/* ------------------------- Check-in cards ------------------------- */
 
-function TodayCard({ kind }: { kind: CheckInKind }) {
+function DayCard({
+  date,
+  kind,
+  startExpanded = false,
+}: {
+  date: string;
+  kind: CheckInKind;
+  startExpanded?: boolean;
+}) {
   const { forDate, save } = useCheckIns();
-  const date = todayKey();
   const existing = forDate(date, kind);
   const feelings = existing?.feelings ?? [];
   const gratitude = existing?.gratitude ?? [];
@@ -125,7 +164,7 @@ function TodayCard({ kind }: { kind: CheckInKind }) {
   // expands/collapses manually or starts editing, so the card doesn't
   // snap shut mid check-in.
   const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
-  const expanded = userExpanded ?? !done;
+  const expanded = userExpanded ?? (startExpanded || !done);
 
   function toggleFeeling(word: string) {
     if (userExpanded === null) setUserExpanded(true);
@@ -294,16 +333,27 @@ function HistoryDay({
   date,
   morning,
   evening,
+  onEdit,
 }: {
   date: string;
   morning?: CheckIn;
   evening?: CheckIn;
+  onEdit: () => void;
 }) {
   const gratitude = (evening?.gratitude ?? []).filter(Boolean);
   return (
-    <div className="rounded-xl border border-line bg-surface p-3">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-600">
-        {formatLongDate(date)}
+    <div className="group rounded-xl border border-line bg-surface p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+          {formatLongDate(date)}
+        </span>
+        <button
+          onClick={onEdit}
+          aria-label={`Edit ${formatLongDate(date)}`}
+          className="hover-reveal rounded p-1 text-faint hover:text-ink"
+        >
+          <PencilIcon size={13} />
+        </button>
       </div>
       <div className="space-y-1.5">
         {morning && morning.feelings.length > 0 && (
