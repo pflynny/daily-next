@@ -109,6 +109,8 @@ export interface Goal {
   color: string | null;
   position: number;
   archived: boolean;
+  /** Calendar year the goal is set for — goals reset each January. */
+  year: number;
   startedAt: string;
   createdAt: string;
 }

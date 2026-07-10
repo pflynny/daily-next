@@ -24,21 +24,39 @@ export interface GoalStats {
   score: number;
 }
 
-export function useGoals() {
+/** Year a goal belongs to; falls back to its start date for rows cached
+ *  before the year column existed. */
+function goalYear(g: Goal): number {
+  return g.year ?? Number(g.startedAt.slice(0, 4)) ?? new Date().getFullYear();
+}
+
+export function useGoals(year: number = new Date().getFullYear()) {
   const { goals, goalEntries, settings, put, del } = useAppData();
   const weekStartsOn = settings.weekStartsOn;
 
   const active = useMemo(
     () =>
       goals
-        .filter((g) => !g.archived)
+        .filter((g) => !g.archived && goalYear(g) === year)
         .sort((a, b) => a.position - b.position),
-    [goals],
+    [goals, year],
   );
 
   const archived = useMemo(
-    () => goals.filter((g) => g.archived).sort((a, b) => a.position - b.position),
-    [goals],
+    () =>
+      goals
+        .filter((g) => g.archived && goalYear(g) === year)
+        .sort((a, b) => a.position - b.position),
+    [goals, year],
+  );
+
+  /** Active goals from the previous year (for the January carry-over). */
+  const previousYearGoals = useMemo(
+    () =>
+      goals
+        .filter((g) => !g.archived && goalYear(g) === year - 1)
+        .sort((a, b) => a.position - b.position),
+    [goals, year],
   );
 
   /** goalId -> (dateKey -> count) */
@@ -75,13 +93,31 @@ export function useGoals() {
           color: null,
           position: active.length,
           archived: false,
+          year,
           startedAt: now,
           createdAt: now,
         },
       ]);
     },
-    [active.length, put],
+    [active.length, year, put],
   );
+
+  /** Copy the previous year's active goals into this year (fresh ids, no entries). */
+  const carryOverGoals = useCallback(() => {
+    if (!previousYearGoals.length) return;
+    const now = new Date().toISOString();
+    put(
+      "goals",
+      previousYearGoals.map((g, i) => ({
+        ...g,
+        id: newId(),
+        year,
+        position: active.length + i,
+        startedAt: now,
+        createdAt: now,
+      })),
+    );
+  }, [previousYearGoals, active.length, year, put]);
 
   const updateGoal = useCallback(
     (goal: Goal, patch: Partial<Goal>) => put("goals", [{ ...goal, ...patch }]),
@@ -260,8 +296,10 @@ export function useGoals() {
   return {
     active,
     archived,
+    previousYearGoals,
     datesFor,
     addGoal,
+    carryOverGoals,
     updateGoal,
     deleteGoal,
     moveGoal,

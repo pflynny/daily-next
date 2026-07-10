@@ -6,6 +6,7 @@ import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { formatLongDate, todayKey } from "@/lib/utils/date";
 import { CheckIcon, ChevronDown, MoonIcon, PencilIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
+import { YearPicker } from "@/shared/ui/YearPicker";
 import { useCheckIns } from "./useCheckIns";
 import { FeelingPicker } from "./FeelingPicker";
 import { TONE_OF } from "./feelings";
@@ -16,14 +17,21 @@ const PAGE_SIZE = 30;
 export function CheckInsView() {
   const { history } = useCheckIns();
   const today = todayKey();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
   const [filter, setFilter] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [editDate, setEditDate] = useState<string | null>(null);
 
-  // Feelings that actually appear in history, most frequent first.
+  const yearHistory = useMemo(
+    () => history.filter((day) => day.date.startsWith(`${year}-`)),
+    [history, year],
+  );
+
+  // Feelings that appear in the selected year, most frequent first.
   const usedFeelings = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const day of history) {
+    for (const day of yearHistory) {
       for (const c of [day.morning, day.evening]) {
         for (const w of c?.feelings ?? []) {
           counts.set(w, (counts.get(w) ?? 0) + 1);
@@ -31,11 +39,11 @@ export function CheckInsView() {
       }
     }
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
-  }, [history]);
+  }, [yearHistory]);
 
   const pastDays = useMemo(
     () =>
-      history
+      yearHistory
         .filter((day) => day.date !== today)
         .filter(
           (day) =>
@@ -43,16 +51,29 @@ export function CheckInsView() {
             day.morning?.feelings.includes(filter) ||
             day.evening?.feelings.includes(filter),
         ),
-    [history, today, filter],
+    [yearHistory, today, filter],
   );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="CHECK-INS" />
+      <PageHeader title="CHECK-INS">
+        <YearPicker
+          year={year}
+          onChange={(y) => {
+            setYear(y);
+            setFilter("");
+            setLimit(PAGE_SIZE);
+          }}
+        />
+      </PageHeader>
       <Screen>
         <div className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
-          <DayCard date={today} kind="morning" />
-          <DayCard date={today} kind="evening" />
+          {year === currentYear && (
+            <>
+              <DayCard date={today} kind="morning" />
+              <DayCard date={today} kind="evening" />
+            </>
+          )}
 
           <section>
             <div className="mb-2 mt-6 flex items-center justify-between gap-3">
@@ -130,9 +151,11 @@ export function CheckInsView() {
                 Show more
               </button>
             )}
-            {pastDays.length === 0 && history.some((d) => d.date !== today) && (
+            {pastDays.length === 0 && (
               <p className="py-6 text-center text-sm text-faint">
-                No days match that feeling yet.
+                {filter
+                  ? "No days match that feeling."
+                  : `No check-ins in ${year} yet.`}
               </p>
             )}
           </section>

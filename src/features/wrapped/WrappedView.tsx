@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
-import { ChevronLeft, ChevronRight } from "@/shared/ui/icons";
+import { YearPicker } from "@/shared/ui/YearPicker";
 import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
 import { TONE_OF } from "@/features/checkins/feelings";
 import { formatLongDate } from "@/lib/utils/date";
@@ -27,26 +27,7 @@ export function WrappedView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="WRAPPED">
-        <div className="flex items-center gap-1 rounded-lg border border-line px-1">
-          <button
-            onClick={() => setYear((y) => y - 1)}
-            aria-label="Previous year"
-            className="rounded p-1 text-muted hover:text-ink"
-          >
-            <ChevronLeft size={15} />
-          </button>
-          <span className="min-w-[3ch] text-center text-xs font-semibold text-ink">
-            {year}
-          </span>
-          <button
-            onClick={() => setYear((y) => Math.min(currentYear, y + 1))}
-            disabled={year >= currentYear}
-            aria-label="Next year"
-            className="rounded p-1 text-muted hover:text-ink disabled:opacity-30"
-          >
-            <ChevronRight size={15} />
-          </button>
-        </div>
+        <YearPicker year={year} onChange={setYear} max={currentYear} />
       </PageHeader>
 
       <Screen>

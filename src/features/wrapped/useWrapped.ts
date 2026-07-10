@@ -212,7 +212,11 @@ export function useWrapped(year: number): WrappedData {
         longestStreak,
         monthly,
       },
-      goals: { tracked: goals.length, checkIns: goalCheckIns, topGoal },
+      goals: {
+        tracked: goals.filter((g) => (g.year ?? Number(g.startedAt.slice(0, 4))) === year).length,
+        checkIns: goalCheckIns,
+        topGoal,
+      },
       collection: { total: items.length, byType, topRated },
       memories: { count: yearMemories.length, photos },
       quotes: {
