@@ -192,6 +192,52 @@ export interface CheckIn {
   createdAt: string;
 }
 
+/* ------------------------- Fitness years -------------------------- */
+/** Totals for one activity group over a year (from the Garmin export). */
+export interface FitnessActivityTotals {
+  count: number;
+  km: number;
+  ascentM: number;
+  movingSec: number;
+}
+
+/** One year of Garmin data, as summarised by Personal Record's
+ *  daily-fitness.json export — imported in Settings → Integrations. */
+export interface GarminYearSummary {
+  steps: { total: number; days: number; avgPerDay: number } | null;
+  sleep: { totalSeconds: number; nights: number; avgSeconds: number } | null;
+  rhr: {
+    startAvg: number;
+    endAvg: number;
+    delta: number;
+    low: number;
+    days: number;
+  } | null;
+  vo2: { start: number; end: number; change: number } | null;
+  activities: {
+    total: FitnessActivityTotals;
+    run: FitnessActivityTotals;
+    ride: FitnessActivityTotals;
+    walkHike: FitnessActivityTotals;
+  } | null;
+}
+
+/** Peaks bagged in a year, counted from a cairnbook backup file. */
+export interface PeaksYearSummary {
+  total: number;
+  /** list slug (e.g. "wainwrights") -> peaks ticked that year */
+  byList: Record<string, number>;
+}
+
+/** One row per calendar year; sections fill in as files are imported. */
+export interface FitnessYear {
+  id: string;
+  year: number;
+  garmin: GarminYearSummary | null;
+  peaks: PeaksYearSummary | null;
+  updatedAt: string;
+}
+
 /* -------------------------- Profile ------------------------------- */
 export interface AppSettings {
   showLists: boolean;

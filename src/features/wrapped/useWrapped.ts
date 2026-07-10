@@ -4,7 +4,12 @@ import { useMemo } from "react";
 import { useAppData } from "@/state/AppDataProvider";
 import { buildMemories } from "@/state/selectors";
 import { addDays, fromDateKey, toDateKey } from "@/lib/utils/date";
-import type { CollectionItem, MemoryView } from "@/types";
+import type {
+  CollectionItem,
+  GarminYearSummary,
+  MemoryView,
+  PeaksYearSummary,
+} from "@/types";
 
 const MONTHS = [
   "January",
@@ -61,6 +66,11 @@ export interface WrappedData {
     /** the top (first) thing from each evening, oldest first */
     entries: { date: string; text: string }[];
   };
+  /** imported fitness data (Garmin export / cairnbook backup), if any */
+  fitness: {
+    garmin: GarminYearSummary | null;
+    peaks: PeaksYearSummary | null;
+  } | null;
   /** combined per-day activity for the heatmap */
   activity: Map<string, number>;
   activityMax: number;
@@ -77,6 +87,7 @@ export function useWrapped(year: number): WrappedData {
     memoryMedia,
     likedQuotes,
     checkIns,
+    fitnessYears,
   } = useAppData();
 
   return useMemo(() => {
@@ -198,6 +209,13 @@ export function useWrapped(year: number): WrappedData {
         ? likedQuotes[Math.floor(likedQuotes.length / 2)]
         : null;
 
+    // ---- imported fitness (Garmin / cairnbook) ----
+    const fitnessRow = fitnessYears.find((f) => f.year === year);
+    const fitness =
+      fitnessRow && (fitnessRow.garmin || fitnessRow.peaks)
+        ? { garmin: fitnessRow.garmin, peaks: fitnessRow.peaks }
+        : null;
+
     const activityMax = Math.max(1, ...activity.values());
 
     return {
@@ -230,6 +248,7 @@ export function useWrapped(year: number): WrappedData {
         counts: feelingsSorted,
       },
       gratitude: { entries: gratitudeEntries },
+      fitness,
       activity,
       activityMax,
     };
@@ -244,5 +263,6 @@ export function useWrapped(year: number): WrappedData {
     memoryMedia,
     likedQuotes,
     checkIns,
+    fitnessYears,
   ]);
 }

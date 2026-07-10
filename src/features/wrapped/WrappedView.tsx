@@ -9,6 +9,7 @@ import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
 import { TONE_OF } from "@/features/checkins/feelings";
 import { formatLongDate } from "@/lib/utils/date";
 import { useWrapped } from "./useWrapped";
+import type { GarminYearSummary, PeaksYearSummary } from "@/types";
 
 const MONTH_LETTERS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
@@ -22,7 +23,8 @@ export function WrappedView() {
     w.tasks.total > 0 ||
     w.goals.checkIns > 0 ||
     w.collection.total > 0 ||
-    w.memories.count > 0;
+    w.memories.count > 0 ||
+    w.fitness !== null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -100,6 +102,11 @@ export function WrappedView() {
               max={w.activityMax}
             />
           </section>
+
+          {/* The body: imported Garmin + cairnbook data */}
+          {w.fitness && (
+            <FitnessSection garmin={w.fitness.garmin} peaks={w.fitness.peaks} />
+          )}
 
           {/* Goals */}
           {w.goals.checkIns > 0 && (
@@ -228,6 +235,128 @@ export function WrappedView() {
         </div>
       </Screen>
     </div>
+  );
+}
+
+/* ------------------------- The body ------------------------------- */
+
+const LIST_LABELS: Record<string, string> = {
+  wainwrights: "Wainwrights",
+  munros: "Munros",
+  corbetts: "Corbetts",
+  hewitts: "Hewitts",
+  donalds: "Donalds",
+  fionas: "Fionas",
+  sub2000: "Marilyns",
+  islands: "island peaks",
+};
+
+const AVG_STRIDE_M = 0.75;
+const EVEREST_M = 8849;
+
+const fmtInt = (n: number) => Math.round(n).toLocaleString("en-GB");
+
+/** 27000 -> "7h 30m" */
+function hoursMinutes(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  return `${h}h ${m.toString().padStart(2, "0")}m`;
+}
+
+/** Big-stat friendly step count: 1890244 -> "1.89M", 425100 -> "425k" */
+function compactSteps(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 100_000) return `${Math.round(n / 1000)}k`;
+  return fmtInt(n);
+}
+
+/** { wainwrights: 29, munros: 8 } -> "29 Wainwrights and 8 Munros" */
+function peaksPhrase(byList: Record<string, number>): string {
+  const parts = Object.entries(byList)
+    .sort((a, b) => b[1] - a[1])
+    .map(([slug, n]) => `${n} ${LIST_LABELS[slug] ?? slug}`);
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+function FitnessSection({
+  garmin,
+  peaks,
+}: {
+  garmin: GarminYearSummary | null;
+  peaks: PeaksYearSummary | null;
+}) {
+  const acts = garmin?.activities ?? null;
+
+  const bigs: { value: string | number; label: string }[] = [];
+  if (peaks) bigs.push({ value: peaks.total, label: "Summits bagged" });
+  if (acts && acts.run.km >= 1)
+    bigs.push({ value: fmtInt(acts.run.km), label: "Km run" });
+  if (acts && acts.ride.km >= 1)
+    bigs.push({ value: fmtInt(acts.ride.km), label: "Km ridden" });
+  if (acts && acts.walkHike.km >= 1)
+    bigs.push({ value: fmtInt(acts.walkHike.km), label: "Km walked" });
+  if (garmin?.steps)
+    bigs.push({ value: compactSteps(garmin.steps.total), label: "Steps" });
+  if (garmin?.sleep)
+    bigs.push({
+      value: hoursMinutes(garmin.sleep.avgSeconds),
+      label: "Sleep a night",
+    });
+
+  const lines: string[] = [];
+  if (peaks && Object.keys(peaks.byList).length > 0) {
+    lines.push(`${peaksPhrase(peaks.byList)} ticked.`);
+  }
+  if (garmin?.steps) {
+    const km = (garmin.steps.total * AVG_STRIDE_M) / 1000;
+    lines.push(
+      `${fmtInt(garmin.steps.total)} steps — roughly ${fmtInt(km)} km on foot.`,
+    );
+  }
+  if (garmin?.sleep) {
+    lines.push(
+      `${fmtInt(garmin.sleep.totalSeconds / 3600)} hours asleep across ${fmtInt(garmin.sleep.nights)} nights.`,
+    );
+  }
+  if (garmin?.rhr) {
+    const { startAvg, endAvg, delta, low } = garmin.rhr;
+    const trend =
+      delta < 0
+        ? `down ${Math.abs(delta)} bpm over the year`
+        : delta > 0
+          ? `up ${delta} bpm over the year`
+          : "steady all year";
+    lines.push(
+      `Resting heart rate ${startAvg} → ${endAvg} bpm — ${trend} (lowest ${low}).`,
+    );
+  }
+  if (acts && acts.total.ascentM >= EVEREST_M) {
+    lines.push(
+      `${fmtInt(acts.total.ascentM)} m climbed in total — ${(acts.total.ascentM / EVEREST_M).toFixed(1)} Everests.`,
+    );
+  }
+
+  return (
+    <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+      <SectionLabel>The body</SectionLabel>
+      {bigs.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {bigs.map((b) => (
+            <Big key={b.label} value={b.value} label={b.label} />
+          ))}
+        </div>
+      )}
+      {lines.length > 0 && (
+        <div className="mt-4 space-y-1.5">
+          {lines.map((line) => (
+            <p key={line} className="text-sm text-muted">
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

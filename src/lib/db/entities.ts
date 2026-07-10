@@ -15,6 +15,7 @@ import type {
   CheckIn,
   CheckInKind,
   CollectionMediaType,
+  FitnessYear,
   GoalCadence,
   MemoryType,
 } from "@/types";
@@ -35,7 +36,8 @@ export type StateKey =
   | "memoryMedia"
   | "likedQuotes"
   | "checkIns"
-  | "notes";
+  | "notes"
+  | "fitnessYears";
 
 export interface EntityState {
   tasks: Task[];
@@ -52,6 +54,7 @@ export interface EntityState {
   likedQuotes: LikedQuote[];
   checkIns: CheckIn[];
   notes: Note[];
+  fitnessYears: FitnessYear[];
 }
 
 export const EMPTY_STATE: EntityState = {
@@ -69,6 +72,7 @@ export const EMPTY_STATE: EntityState = {
   likedQuotes: [],
   checkIns: [],
   notes: [],
+  fitnessYears: [],
 };
 
 interface EntityConfig {
@@ -380,6 +384,24 @@ export const ENTITIES: Record<StateKey, EntityConfig> = {
       gratitude: Array.isArray(r.gratitude) ? r.gratitude.map(String) : [],
       note: str(r.note),
       createdAt: str(r.created_at),
+    }),
+  },
+  fitnessYears: {
+    table: "fitness_years",
+    orderBy: "year",
+    toRow: (f: FitnessYear) => ({
+      id: f.id,
+      year: f.year,
+      garmin: f.garmin,
+      peaks: f.peaks,
+      updated_at: f.updatedAt,
+    }),
+    fromRow: (r): FitnessYear => ({
+      id: str(r.id),
+      year: num(r.year),
+      garmin: r.garmin ?? null,
+      peaks: r.peaks ?? null,
+      updatedAt: str(r.updated_at),
     }),
   },
 };
