@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toSvg } from "html-to-image";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { YearPicker } from "@/shared/ui/YearPicker";
+import { DownloadIcon } from "@/shared/ui/icons";
 import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
 import { TONE_OF } from "@/features/checkins/feelings";
 import { formatLongDate } from "@/lib/utils/date";
@@ -17,6 +19,8 @@ export function WrappedView() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const w = useWrapped(year);
+  const shotRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   const monthlyMax = Math.max(1, ...w.tasks.monthly);
   const hasData =
@@ -26,14 +30,84 @@ export function WrappedView() {
     w.memories.count > 0 ||
     w.fitness !== null;
 
+  async function saveImage() {
+    const node = shotRef.current;
+    if (!node || exporting) return;
+    setExporting(true);
+    // The fade-rise entrance animations restart inside the capture and
+    // rasterize at frame zero (opacity 0) — suppress them while cloning.
+    const freeze = document.createElement("style");
+    freeze.textContent =
+      "[data-exporting], [data-exporting] * { animation: none !important; transition: none !important; }";
+    document.head.appendChild(freeze);
+    node.setAttribute("data-exporting", "");
+    // Let the style apply — rAF when visible, timer fallback when the tab
+    // is backgrounded (rAF doesn't fire there).
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (!done) {
+          done = true;
+          resolve();
+        }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(finish));
+      setTimeout(finish, 200);
+    });
+    try {
+      // html-to-image's own rasterizer stalls on large captures, so take
+      // its SVG serialization and draw it to a canvas ourselves.
+      const svgUrl = await toSvg(node, {
+        backgroundColor: "#faf9f5",
+        // keep broken/cross-origin images from aborting the whole export
+        imagePlaceholder:
+          "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      });
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("could not render the capture"));
+        img.src = svgUrl;
+      });
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = node.offsetWidth * scale;
+      canvas.height = node.offsetHeight * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#faf9f5";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `daily-wrapped-${year}.png`;
+      a.click();
+    } catch (err) {
+      console.error("Wrapped export failed", err);
+    } finally {
+      node.removeAttribute("data-exporting");
+      freeze.remove();
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="WRAPPED">
         <YearPicker year={year} onChange={setYear} max={currentYear} />
+        <button
+          onClick={saveImage}
+          disabled={exporting}
+          aria-label="Save as image"
+          title="Save as image"
+          className="flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink disabled:opacity-50"
+        >
+          <DownloadIcon size={15} />
+          {exporting ? "Saving…" : "Image"}
+        </button>
       </PageHeader>
 
       <Screen>
-        <div className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
+        <div ref={shotRef} className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
           {/* Hero */}
           <section className="animate-fade-rise overflow-hidden rounded-3xl bg-brand-900 px-6 py-10 text-center text-brand-50">
             <div className="font-mono text-6xl font-bold tracking-tight">
@@ -54,81 +128,63 @@ export function WrappedView() {
             )}
           </section>
 
-          {/* Tasks */}
-          <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
-            <SectionLabel>Tasks</SectionLabel>
-            <div className="grid grid-cols-2 gap-4">
-              <Big value={w.tasks.completed} label="Completed" />
-              <Big value={`${w.tasks.completionRate}%`} label="Completion rate" />
-              <Big value={w.tasks.activeDays} label="Active days" />
-              <Big value={w.tasks.longestStreak} label="Longest streak" />
-            </div>
-            {w.tasks.busiestMonth && (
-              <p className="mt-4 text-sm text-muted">
-                Your busiest month was{" "}
-                <span className="font-semibold text-ink">
-                  {w.tasks.busiestMonth}
-                </span>{" "}
-                with {w.tasks.busiestMonthCount} done.
-              </p>
-            )}
-            <div className="mt-5 flex items-end gap-1.5">
-              {w.tasks.monthly.map((c, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="flex h-20 w-full items-end">
-                    <div
-                      className="w-full rounded-t bg-brand-400"
-                      style={{ height: `${(c / monthlyMax) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-faint">
-                    {MONTH_LETTERS[i]}
-                  </span>
+          {/* 1 — Memories */}
+          {w.memories.count > 0 && (
+            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+              <SectionLabel>Memories</SectionLabel>
+              <Big value={w.memories.count} label="Moments captured" />
+              {w.memories.photos.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-1.5">
+                  {w.memories.photos.map((m) => {
+                    const img = m.media.find((md) => md.kind === "image");
+                    if (!img) return null;
+                    return (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={m.id}
+                        src={img.url}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-square w-full rounded-lg border border-line object-cover"
+                      />
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Activity heatmap */}
-          <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
-            <SectionLabel>Every day</SectionLabel>
-            <p className="mb-4 text-sm text-muted">
-              Tasks, goals and memories, all year.
-            </p>
-            <DailyHeatmap
-              year={year}
-              counts={w.activity}
-              mode="intensity"
-              max={w.activityMax}
-            />
-          </section>
-
-          {/* The body: imported Garmin + cairnbook data */}
-          {w.fitness && (
-            <FitnessSection garmin={w.fitness.garmin} peaks={w.fitness.peaks} />
-          )}
-
-          {/* Goals */}
-          {w.goals.checkIns > 0 && (
-            <section className="animate-fade-rise rounded-3xl bg-brand-700 p-6 text-brand-50">
-              <SectionLabel dark>Goals</SectionLabel>
-              <div className="grid grid-cols-2 gap-4">
-                <Big value={w.goals.checkIns} label="Check-ins" dark />
-                <Big value={w.goals.tracked} label="Goals tracked" dark />
-              </div>
-              {w.goals.topGoal && (
-                <p className="mt-4 text-sm text-brand-100/90">
-                  Most consistent:{" "}
-                  <span className="font-semibold text-white">
-                    {w.goals.topGoal.title}
-                  </span>{" "}
-                  ({w.goals.topGoal.count} times)
-                </p>
               )}
             </section>
           )}
 
-          {/* Collections */}
+          {/* 2 — Grateful for */}
+          {w.gratitude.entries.length > 0 && (
+            <GratitudeSection entries={w.gratitude.entries} year={year} />
+          )}
+
+          {/* 3 — How you felt */}
+          {w.feelings.counts.length > 0 && (
+            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+              <SectionLabel>How you felt</SectionLabel>
+              <Big value={w.feelings.daysCheckedIn} label="Days checked in" />
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {w.feelings.counts.slice(0, 20).map(([word, count]) => (
+                  <span
+                    key={word}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs",
+                      TONE_OF.get(word) === "down"
+                        ? "bg-amber-700/10 text-amber-800"
+                        : TONE_OF.get(word) === "flat"
+                          ? "bg-ink/5 text-muted"
+                          : "bg-brand-500/10 text-brand-700",
+                    )}
+                  >
+                    {word} <span className="font-bold">{count}</span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 4 — Read & watched */}
           {w.collection.total > 0 && (
             <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
               <SectionLabel>Read &amp; watched</SectionLabel>
@@ -165,61 +221,79 @@ export function WrappedView() {
             </section>
           )}
 
-          {/* Memories */}
-          {w.memories.count > 0 && (
-            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
-              <SectionLabel>Memories</SectionLabel>
-              <Big value={w.memories.count} label="Moments captured" />
-              {w.memories.photos.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-1.5">
-                  {w.memories.photos.map((m) => {
-                    const img = m.media.find((md) => md.kind === "image");
-                    if (!img) return null;
-                    return (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={m.id}
-                        src={img.url}
-                        alt=""
-                        loading="lazy"
-                        className="aspect-square w-full rounded-lg border border-line object-cover"
-                      />
-                    );
-                  })}
-                </div>
+          {/* 5 — Goals */}
+          {w.goals.checkIns > 0 && (
+            <section className="animate-fade-rise rounded-3xl bg-brand-700 p-6 text-brand-50">
+              <SectionLabel dark>Goals</SectionLabel>
+              <div className="grid grid-cols-2 gap-4">
+                <Big value={w.goals.checkIns} label="Check-ins" dark />
+                <Big value={w.goals.tracked} label="Goals tracked" dark />
+              </div>
+              {w.goals.topGoal && (
+                <p className="mt-4 text-sm text-brand-100/90">
+                  Most consistent:{" "}
+                  <span className="font-semibold text-white">
+                    {w.goals.topGoal.title}
+                  </span>{" "}
+                  ({w.goals.topGoal.count} times)
+                </p>
               )}
             </section>
           )}
 
-          {/* Feelings */}
-          {w.feelings.counts.length > 0 && (
-            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
-              <SectionLabel>How you felt</SectionLabel>
-              <Big value={w.feelings.daysCheckedIn} label="Days checked in" />
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {w.feelings.counts.slice(0, 20).map(([word, count]) => (
-                  <span
-                    key={word}
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-xs",
-                      TONE_OF.get(word) === "down"
-                        ? "bg-amber-700/10 text-amber-800"
-                        : TONE_OF.get(word) === "flat"
-                          ? "bg-ink/5 text-muted"
-                          : "bg-brand-500/10 text-brand-700",
-                    )}
-                  >
-                    {word} <span className="font-bold">{count}</span>
-                  </span>
-                ))}
-              </div>
-            </section>
+          {/* 6 — Every day heatmap */}
+          <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+            <SectionLabel>Every day</SectionLabel>
+            <p className="mb-4 text-sm text-muted">
+              Tasks, goals and memories, all year.
+            </p>
+            <DailyHeatmap
+              year={year}
+              counts={w.activity}
+              mode="intensity"
+              max={w.activityMax}
+            />
+          </section>
+
+          {/* 7 — The body: imported Garmin + cairnbook data */}
+          {w.fitness && (
+            <FitnessSection garmin={w.fitness.garmin} peaks={w.fitness.peaks} />
           )}
 
-          {/* Gratitude */}
-          {w.gratitude.entries.length > 0 && (
-            <GratitudeSection entries={w.gratitude.entries} year={year} />
-          )}
+          {/* 8 — Tasks */}
+          <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+            <SectionLabel>Tasks</SectionLabel>
+            <div className="grid grid-cols-2 gap-4">
+              <Big value={w.tasks.completed} label="Completed" />
+              <Big value={`${w.tasks.completionRate}%`} label="Completion rate" />
+              <Big value={w.tasks.activeDays} label="Active days" />
+              <Big value={w.tasks.longestStreak} label="Longest streak" />
+            </div>
+            {w.tasks.busiestMonth && (
+              <p className="mt-4 text-sm text-muted">
+                Your busiest month was{" "}
+                <span className="font-semibold text-ink">
+                  {w.tasks.busiestMonth}
+                </span>{" "}
+                with {w.tasks.busiestMonthCount} done.
+              </p>
+            )}
+            <div className="mt-5 flex items-end gap-1.5">
+              {w.tasks.monthly.map((c, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="flex h-20 w-full items-end">
+                    <div
+                      className="w-full rounded-t bg-brand-400"
+                      style={{ height: `${(c / monthlyMax) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-faint">
+                    {MONTH_LETTERS[i]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* Featured quote */}
           {w.quotes.featured && (

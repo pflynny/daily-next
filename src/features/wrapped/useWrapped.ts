@@ -150,24 +150,19 @@ export function useWrapped(year: number): WrappedData {
     }
 
     // ---- collections ----
-    const yearCollectionIds = new Set(
-      collections.filter((c) => c.year === year).map((c) => c.id),
-    );
+    // Count per collection (matching the Year tab) rather than per item
+    // media type, so a mislabeled item can't skew the numbers.
+    const yearCollections = collections.filter((c) => c.year === year);
+    const yearCollectionIds = new Set(yearCollections.map((c) => c.id));
     const items = collectionItems.filter((i) =>
       yearCollectionIds.has(i.collectionId),
     );
-    const typeCounts = new Map<string, number>();
-    for (const it of items)
-      typeCounts.set(it.mediaType, (typeCounts.get(it.mediaType) ?? 0) + 1);
-    const typeLabels: Record<string, string> = {
-      book: "Books",
-      movie: "Movies",
-      tv: "TV shows",
-      music: "Music",
-      other: "Other",
-    };
-    const byType = [...typeCounts.entries()]
-      .map(([k, count]) => ({ label: typeLabels[k] ?? k, count }))
+    const byType = yearCollections
+      .map((c) => ({
+        label: c.name,
+        count: items.filter((i) => i.collectionId === c.id).length,
+      }))
+      .filter((t) => t.count > 0)
       .sort((a, b) => b.count - a.count);
     const topRated = [...items]
       .filter((i) => typeof i.rating === "number")
