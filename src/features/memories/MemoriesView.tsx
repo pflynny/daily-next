@@ -5,7 +5,16 @@ import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
-import { ImagesIcon, PlusIcon } from "@/shared/ui/icons";
+import {
+  ChevronDown,
+  ImagesIcon,
+  LinkIcon,
+  PhotoIcon,
+  PlusIcon,
+  QuoteIcon,
+  TextIcon,
+  VideoIcon,
+} from "@/shared/ui/icons";
 import { YearPicker } from "@/shared/ui/YearPicker";
 import { cn } from "@/lib/utils/cn";
 import { useMemories } from "./useMemories";
@@ -29,14 +38,35 @@ export function MemoriesView() {
   const toast = useToast();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [view, setView] = useState<"year" | "all">("year");
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<"all" | MemoryType>("all");
   const [editMemory, setEditMemory] = useState<MemoryView | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MemoryView | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const yearItems = byYear.find(([y]) => y === year)?.[1] ?? [];
   const items =
     filter === "all" ? yearItems : yearItems.filter((m) => m.type === filter);
+
+  const allByYear =
+    filter === "all"
+      ? byYear
+      : byYear
+          .map(
+            ([y, list]) =>
+              [y, list.filter((m) => m.type === filter)] as const,
+          )
+          .filter(([, list]) => list.length > 0);
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -44,7 +74,29 @@ export function MemoriesView() {
         title="MEMORIES"
         subtitle={timeline.length ? `${timeline.length} captured` : undefined}
       >
-        <YearPicker year={year} onChange={setYear} />
+        <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          <button
+            onClick={() => setView("year")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "year" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            Year
+          </button>
+          <button
+            onClick={() => setView("all")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "all" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            All
+          </button>
+        </div>
+        {view === "year" && (
+          <YearPicker year={year} onChange={setYear} min={1900} />
+        )}
         <button
           onClick={() => setAdding(true)}
           className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800"
@@ -90,7 +142,50 @@ export function MemoriesView() {
               ))}
             </div>
 
-            {items.length === 0 ? (
+            {view === "all" ? (
+              allByYear.length === 0 ? (
+                <p className="px-1 py-12 text-center text-sm text-faint">
+                  No {filter === "all" ? "" : `${filter} `}memories yet.
+                </p>
+              ) : (
+                allByYear.map(([y, list]) => (
+                  <section key={y} className="mb-7">
+                    <h2 className="mb-2 font-mono text-xl font-bold tracking-tight text-brand-700">
+                      {y}
+                    </h2>
+                    <ol className="relative ml-1 border-l border-line">
+                      {list.map((memory) => {
+                        const isOpen = expanded.has(memory.id);
+                        return (
+                          <li key={memory.id} className="relative ml-5">
+                            <span
+                              className={cn(
+                                "absolute -left-[24px] size-1.5 rounded-full bg-brand-400",
+                                isOpen ? "top-3" : "top-3",
+                              )}
+                            />
+                            <CompactRow
+                              memory={memory}
+                              open={isOpen}
+                              onToggle={() => toggleExpanded(memory.id)}
+                            />
+                            {isOpen && (
+                              <div className="mb-3 mt-1">
+                                <MemoryCard
+                                  memory={memory}
+                                  onEdit={setEditMemory}
+                                  onDelete={setConfirmDelete}
+                                />
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </section>
+                ))
+              )
+            ) : items.length === 0 ? (
               <p className="px-1 py-12 text-center text-sm text-faint">
                 No {filter === "all" ? "" : `${filter} `}memories in {year} yet.
               </p>
@@ -146,5 +241,67 @@ export function MemoriesView() {
         }}
       />
     </div>
+  );
+}
+
+/* ---------------- Condensed lifetime-view row ---------------------- */
+
+const ROW_ICONS = {
+  note: TextIcon,
+  quote: QuoteIcon,
+  photo: PhotoIcon,
+  video: VideoIcon,
+  link: LinkIcon,
+};
+
+function shortDay(key: string): string {
+  const d = new Date(`${key}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function rowLabel(memory: MemoryView): string {
+  if (memory.title) return memory.title;
+  if (memory.body) return memory.body;
+  if (memory.linkUrl) return memory.linkUrl;
+  return memory.type;
+}
+
+function CompactRow({
+  memory,
+  open,
+  onToggle,
+}: {
+  memory: MemoryView;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = ROW_ICONS[memory.type];
+  return (
+    <button
+      onClick={onToggle}
+      aria-expanded={open}
+      className="group flex w-full items-center gap-2 py-1.5 text-left"
+    >
+      <span className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-faint">
+        {shortDay(memory.occurredOn)}
+      </span>
+      <Icon size={13} className="shrink-0 text-brand-400" />
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm",
+          open ? "font-semibold text-ink" : "text-ink/90 group-hover:text-ink",
+        )}
+      >
+        {rowLabel(memory)}
+      </span>
+      <ChevronDown
+        size={13}
+        className={cn(
+          "shrink-0 text-faint transition-transform",
+          open && "rotate-180",
+        )}
+      />
+    </button>
   );
 }
