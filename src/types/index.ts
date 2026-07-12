@@ -148,6 +148,10 @@ export interface Memory {
   body: string;
   quoteAuthor: string;
   linkUrl: string;
+  /** Life milestone — starred on the timeline. */
+  milestone: boolean;
+  /** Span both columns of the desktop timeline. */
+  fullWidth: boolean;
   position: number;
   createdAt: string;
 }

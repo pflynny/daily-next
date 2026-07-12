@@ -12,6 +12,7 @@ import {
   PhotoIcon,
   PlusIcon,
   QuoteIcon,
+  StarIcon,
   TextIcon,
   VideoIcon,
 } from "@/shared/ui/icons";
@@ -23,14 +24,23 @@ import { AddMemorySheet } from "./AddMemorySheet";
 import { MemoryEditSheet } from "./MemoryEditSheet";
 import type { MemoryType, MemoryView } from "@/types";
 
-const FILTERS: { value: "all" | MemoryType; label: string }[] = [
+type Filter = "all" | "milestone" | MemoryType;
+
+const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "milestone", label: "★ Milestones" },
   { value: "note", label: "Notes" },
   { value: "quote", label: "Quotes" },
   { value: "photo", label: "Photos" },
   { value: "video", label: "Videos" },
   { value: "link", label: "Links" },
 ];
+
+function matchesFilter(m: MemoryView, filter: Filter): boolean {
+  if (filter === "all") return true;
+  if (filter === "milestone") return m.milestone;
+  return m.type === filter;
+}
 
 export function MemoriesView() {
   const { byYear, timeline, addMemory, updateMemory, setMemoryMedia, deleteMemory } =
@@ -40,24 +50,20 @@ export function MemoriesView() {
   const [year, setYear] = useState(currentYear);
   const [view, setView] = useState<"year" | "all">("year");
   const [adding, setAdding] = useState(false);
-  const [filter, setFilter] = useState<"all" | MemoryType>("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [editMemory, setEditMemory] = useState<MemoryView | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MemoryView | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const yearItems = byYear.find(([y]) => y === year)?.[1] ?? [];
-  const items =
-    filter === "all" ? yearItems : yearItems.filter((m) => m.type === filter);
+  const items = yearItems.filter((m) => matchesFilter(m, filter));
 
-  const allByYear =
-    filter === "all"
-      ? byYear
-      : byYear
-          .map(
-            ([y, list]) =>
-              [y, list.filter((m) => m.type === filter)] as const,
-          )
-          .filter(([, list]) => list.length > 0);
+  const allByYear = byYear
+    .map(
+      ([y, list]) =>
+        [y, list.filter((m) => matchesFilter(m, filter))] as const,
+    )
+    .filter(([, list]) => list.length > 0);
 
   function toggleExpanded(id: string) {
     setExpanded((prev) => {
@@ -158,12 +164,16 @@ export function MemoriesView() {
                         const isOpen = expanded.has(memory.id);
                         return (
                           <li key={memory.id} className="relative ml-5">
-                            <span
-                              className={cn(
-                                "absolute -left-[24px] size-1.5 rounded-full bg-brand-400",
-                                isOpen ? "top-3" : "top-3",
-                              )}
-                            />
+                            {memory.milestone ? (
+                              <span className="absolute -left-[31px] top-1.5 flex items-center justify-center rounded-full bg-paper p-0.5">
+                                <StarIcon
+                                  size={12}
+                                  className="fill-brand-500 text-brand-500"
+                                />
+                              </span>
+                            ) : (
+                              <span className="absolute -left-[24px] top-3 size-1.5 rounded-full bg-brand-400" />
+                            )}
                             <CompactRow
                               memory={memory}
                               open={isOpen}
@@ -194,18 +204,11 @@ export function MemoriesView() {
                 <h2 className="mb-4 font-mono text-2xl font-bold tracking-tight text-brand-700">
                   {year}
                 </h2>
-                <ol className="relative ml-1 border-l border-line">
-                  {items.map((memory) => (
-                    <li key={memory.id} className="relative mb-5 ml-6">
-                      <span className="absolute -left-[27px] top-5 size-2.5 rounded-full border-2 border-paper bg-brand-400" />
-                      <MemoryCard
-                        memory={memory}
-                        onEdit={setEditMemory}
-                        onDelete={setConfirmDelete}
-                      />
-                    </li>
-                  ))}
-                </ol>
+                <TimelineGrid
+                  items={items}
+                  onEdit={setEditMemory}
+                  onDelete={setConfirmDelete}
+                />
               </section>
             )}
           </div>
@@ -241,6 +244,68 @@ export function MemoriesView() {
         }}
       />
     </div>
+  );
+}
+
+/* --------------- Alternating two-column timeline ------------------- */
+
+function TimelineGrid({
+  items,
+  onEdit,
+  onDelete,
+}: {
+  items: MemoryView[];
+  onEdit: (m: MemoryView) => void;
+  onDelete: (m: MemoryView) => void;
+}) {
+  // Alternate non-wide cards left/right; full-width cards span both columns.
+  let flip = 0;
+  const placed = items.map((m) => {
+    if (m.fullWidth) return { m, pos: "wide" as const };
+    const pos = flip % 2 === 0 ? ("left" as const) : ("right" as const);
+    flip += 1;
+    return { m, pos };
+  });
+
+  return (
+    <ol className="relative ml-1 border-l border-line sm:ml-0 sm:grid sm:grid-cols-2 sm:gap-x-12 sm:border-l-0 sm:before:absolute sm:before:bottom-0 sm:before:left-1/2 sm:before:top-0 sm:before:w-px sm:before:-translate-x-1/2 sm:before:bg-line sm:before:content-['']">
+      {placed.map(({ m, pos }) => (
+        <li
+          key={m.id}
+          className={cn(
+            "relative mb-5 ml-6 sm:ml-0",
+            pos === "wide" && "sm:col-span-2",
+            pos === "left" && "sm:col-start-1",
+            pos === "right" && "sm:col-start-2",
+          )}
+        >
+          {m.milestone ? (
+            <span
+              className={cn(
+                "absolute -left-[34px] top-3.5 z-10 flex items-center justify-center rounded-full bg-paper p-0.5",
+                pos === "left" &&
+                  "sm:left-auto sm:-right-[24px] sm:translate-x-1/2",
+                pos === "right" && "sm:-left-[24px] sm:-translate-x-1/2",
+                pos === "wide" && "sm:left-1/2 sm:-translate-x-1/2",
+              )}
+            >
+              <StarIcon size={15} className="fill-brand-500 text-brand-500" />
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "absolute -left-[27px] top-5 z-10 size-2.5 rounded-full border-2 border-paper bg-brand-400",
+                pos === "left" &&
+                  "sm:left-auto sm:-right-[24px] sm:translate-x-1/2",
+                pos === "right" && "sm:-left-[24px] sm:-translate-x-1/2",
+                pos === "wide" && "sm:left-1/2 sm:-translate-x-1/2",
+              )}
+            />
+          )}
+          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -290,7 +355,9 @@ function CompactRow({
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-sm",
-          open ? "font-semibold text-ink" : "text-ink/90 group-hover:text-ink",
+          memory.milestone || open
+            ? "font-semibold text-ink"
+            : "text-ink/90 group-hover:text-ink",
         )}
       >
         {rowLabel(memory)}

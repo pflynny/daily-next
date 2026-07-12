@@ -14,6 +14,8 @@ export interface NewMemoryInput {
   body: string;
   quoteAuthor: string;
   linkUrl: string;
+  milestone: boolean;
+  fullWidth: boolean;
   media: UploadedMedia[];
 }
 
@@ -49,6 +51,8 @@ export function useMemories() {
           body: input.body.trim(),
           quoteAuthor: input.quoteAuthor.trim(),
           linkUrl: input.linkUrl.trim(),
+          milestone: input.milestone,
+          fullWidth: input.fullWidth,
           position: 0,
           createdAt: now,
         },

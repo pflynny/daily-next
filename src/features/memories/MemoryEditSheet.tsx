@@ -24,6 +24,8 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
   const [body, setBody] = useState("");
   const [author, setAuthor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [milestone, setMilestone] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
   const [removeIds, setRemoveIds] = useState<string[]>([]);
   const [newMedia, setNewMedia] = useState<UploadedMedia[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -37,6 +39,8 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
       setBody(memory.body);
       setAuthor(memory.quoteAuthor);
       setLinkUrl(memory.linkUrl);
+      setMilestone(memory.milestone);
+      setFullWidth(memory.fullWidth);
       setRemoveIds([]);
       setNewMedia([]);
       setError(null);
@@ -77,6 +81,8 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
         body: body.trim(),
         quoteAuthor: author.trim(),
         linkUrl: linkUrl.trim(),
+        milestone,
+        fullWidth,
       },
       { removeIds, add: newMedia },
     );
@@ -106,7 +112,7 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
         </div>
       }
     >
-      <label className="mb-4 flex items-center justify-between gap-3">
+      <label className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted">
           When
         </span>
@@ -117,6 +123,33 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
           className="rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
         />
       </label>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          onClick={() => setMilestone((v) => !v)}
+          aria-pressed={milestone}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+            milestone
+              ? "border-brand-500 bg-brand-50 text-brand-800"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          ★ Milestone
+        </button>
+        <button
+          onClick={() => setFullWidth((v) => !v)}
+          aria-pressed={fullWidth}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+            fullWidth
+              ? "border-brand-500 bg-brand-50 text-brand-800"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          ⬌ Full width
+        </button>
+      </div>
 
       {memory.type === "link" && (
         <input

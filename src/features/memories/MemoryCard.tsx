@@ -7,6 +7,7 @@ import {
   PencilIcon,
   PhotoIcon,
   QuoteIcon,
+  StarIcon,
   TextIcon,
   TrashIcon,
   VideoIcon,
@@ -54,8 +55,16 @@ export function MemoryCard({
         : "grid-cols-3";
 
   return (
-    <div className="group rounded-2xl border border-line bg-surface p-4">
+    <div
+      className={cn(
+        "group rounded-2xl border bg-surface p-4",
+        memory.milestone ? "border-brand-400 ring-1 ring-brand-200" : "border-line",
+      )}
+    >
       <div className="mb-2 flex items-center gap-2 text-faint">
+        {memory.milestone && (
+          <StarIcon size={13} className="fill-brand-500 text-brand-500" />
+        )}
         <Icon size={14} className="text-brand-500" />
         <span className="text-[11px] font-semibold uppercase tracking-wide">
           {shortDate(memory.occurredOn)}

@@ -38,6 +38,8 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
   const [body, setBody] = useState("");
   const [author, setAuthor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [milestone, setMilestone] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
   const [media, setMedia] = useState<UploadedMedia[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,8 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
       setBody("");
       setAuthor("");
       setLinkUrl("");
+      setMilestone(false);
+      setFullWidth(false);
       setMedia([]);
       setError(null);
     }
@@ -83,7 +87,17 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
 
   function save() {
     if (!canSave) return;
-    onSubmit({ occurredOn, type, title, body, quoteAuthor: author, linkUrl, media });
+    onSubmit({
+      occurredOn,
+      type,
+      title,
+      body,
+      quoteAuthor: author,
+      linkUrl,
+      milestone,
+      fullWidth,
+      media,
+    });
     onClose();
   }
 
@@ -132,7 +146,7 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
       </div>
 
       {/* date */}
-      <label className="mb-4 flex items-center justify-between gap-3">
+      <label className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted">
           When
         </span>
@@ -143,6 +157,34 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
           className="rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
         />
       </label>
+
+      {/* display options */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          onClick={() => setMilestone((v) => !v)}
+          aria-pressed={milestone}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+            milestone
+              ? "border-brand-500 bg-brand-50 text-brand-800"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          ★ Milestone
+        </button>
+        <button
+          onClick={() => setFullWidth((v) => !v)}
+          aria-pressed={fullWidth}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+            fullWidth
+              ? "border-brand-500 bg-brand-50 text-brand-800"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          ⬌ Full width
+        </button>
+      </div>
 
       {/* type-specific fields */}
       {type === "quote" ? (
