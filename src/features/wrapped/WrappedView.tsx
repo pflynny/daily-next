@@ -242,18 +242,20 @@ export function WrappedView() {
           )}
 
           {/* 6 — Every day heatmap */}
-          <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
-            <SectionLabel>Every day</SectionLabel>
-            <p className="mb-4 text-sm text-muted">
-              Tasks, goals and memories, all year.
-            </p>
-            <DailyHeatmap
-              year={year}
-              counts={w.activity}
-              mode="intensity"
-              max={w.activityMax}
-            />
-          </section>
+          {w.activity.size > 0 && (
+            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+              <SectionLabel>Every day</SectionLabel>
+              <p className="mb-4 text-sm text-muted">
+                Tasks, goals and memories, all year.
+              </p>
+              <DailyHeatmap
+                year={year}
+                counts={w.activity}
+                mode="intensity"
+                max={w.activityMax}
+              />
+            </section>
+          )}
 
           {/* 7 — The body: imported Garmin + cairnbook data */}
           {w.fitness && (
@@ -261,6 +263,7 @@ export function WrappedView() {
           )}
 
           {/* 8 — Tasks */}
+          {w.tasks.total > 0 && (
           <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
             <SectionLabel>Tasks</SectionLabel>
             <div className="grid grid-cols-2 gap-4">
@@ -294,6 +297,7 @@ export function WrappedView() {
               ))}
             </div>
           </section>
+          )}
 
           {/* Featured quote */}
           {w.quotes.featured && (
@@ -447,9 +451,12 @@ function GratitudeSection({
     <section className="animate-fade-rise rounded-3xl bg-brand-700 p-6 text-brand-50">
       <SectionLabel dark>Grateful for</SectionLabel>
       <Big value={entries.length} label={`Things in ${year}`} dark />
-      <ul className="mt-4 space-y-1.5">
+      <ul className="mt-4 space-y-2.5 sm:space-y-1.5">
         {visible.map((e) => (
-          <li key={e.date} className="flex items-baseline gap-3 text-sm">
+          <li
+            key={e.date}
+            className="flex flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:gap-3"
+          >
             <span className="shrink-0 text-[10px] uppercase tracking-wide text-brand-200">
               {formatLongDate(e.date)}
             </span>

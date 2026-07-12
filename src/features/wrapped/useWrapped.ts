@@ -198,10 +198,13 @@ export function useWrapped(year: number): WrappedData {
       (a, b) => b[1] - a[1],
     );
 
-    // ---- quotes ----
+    // ---- quotes: liked in this year — a fresh counter every January ----
+    const yearQuotes = likedQuotes.filter((q) =>
+      q.createdAt.startsWith(prefix),
+    );
     const featured =
-      likedQuotes.length > 0
-        ? likedQuotes[Math.floor(likedQuotes.length / 2)]
+      yearQuotes.length > 0
+        ? yearQuotes[Math.floor(yearQuotes.length / 2)]
         : null;
 
     // ---- imported fitness (Garmin / cairnbook) ----
@@ -233,7 +236,7 @@ export function useWrapped(year: number): WrappedData {
       collection: { total: items.length, byType, topRated },
       memories: { count: yearMemories.length, photos },
       quotes: {
-        count: likedQuotes.length,
+        count: yearQuotes.length,
         featured: featured
           ? { text: featured.text, author: featured.author }
           : null,
