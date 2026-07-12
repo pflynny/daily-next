@@ -249,6 +249,45 @@ export function MemoriesView() {
 
 /* --------------- Alternating two-column timeline ------------------- */
 
+type MarkerPos = "mobile" | "left" | "right" | "wide";
+
+function TimelineMarker({ m, pos }: { m: MemoryView; pos: MarkerPos }) {
+  const place =
+    pos === "mobile"
+      ? m.milestone
+        ? "-left-[34px] top-3.5"
+        : "-left-[27px] top-5"
+      : pos === "left"
+        ? "left-auto -right-[24px] translate-x-1/2 top-4"
+        : pos === "right"
+          ? "-left-[24px] -translate-x-1/2 top-4"
+          : "left-1/2 -translate-x-1/2 top-4";
+  if (m.milestone) {
+    return (
+      <span
+        className={cn(
+          "absolute z-10 flex items-center justify-center rounded-full bg-paper p-0.5",
+          place,
+        )}
+      >
+        <StarIcon size={15} className="fill-brand-500 text-brand-500" />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "absolute z-10 size-2.5 rounded-full border-2 border-paper bg-brand-400",
+        place,
+      )}
+    />
+  );
+}
+
+type Segment =
+  | { kind: "wide"; m: MemoryView }
+  | { kind: "run"; items: MemoryView[] };
+
 function TimelineGrid({
   items,
   onEdit,
@@ -258,54 +297,66 @@ function TimelineGrid({
   onEdit: (m: MemoryView) => void;
   onDelete: (m: MemoryView) => void;
 }) {
-  // Alternate non-wide cards left/right; full-width cards span both columns.
-  let flip = 0;
-  const placed = items.map((m) => {
-    if (m.fullWidth) return { m, pos: "wide" as const };
-    const pos = flip % 2 === 0 ? ("left" as const) : ("right" as const);
-    flip += 1;
-    return { m, pos };
-  });
+  // Runs of normal cards flow as two independent staggered columns (no
+  // paired row heights, so no gaps); full-width cards break the run.
+  const segments: Segment[] = [];
+  for (const m of items) {
+    if (m.fullWidth) {
+      segments.push({ kind: "wide", m });
+    } else {
+      const last = segments[segments.length - 1];
+      if (last?.kind === "run") last.items.push(m);
+      else segments.push({ kind: "run", items: [m] });
+    }
+  }
 
   return (
-    <ol className="relative ml-1 border-l border-line sm:ml-0 sm:grid sm:grid-cols-2 sm:gap-x-12 sm:border-l-0 sm:before:absolute sm:before:bottom-0 sm:before:left-1/2 sm:before:top-0 sm:before:w-px sm:before:-translate-x-1/2 sm:before:bg-line sm:before:content-['']">
-      {placed.map(({ m, pos }) => (
-        <li
-          key={m.id}
-          className={cn(
-            "relative mb-5 ml-6 sm:ml-0",
-            pos === "wide" && "sm:col-span-2",
-            pos === "left" && "sm:col-start-1",
-            pos === "right" && "sm:col-start-2",
-          )}
-        >
-          {m.milestone ? (
-            <span
-              className={cn(
-                "absolute -left-[34px] top-3.5 z-10 flex items-center justify-center rounded-full bg-paper p-0.5",
-                pos === "left" &&
-                  "sm:left-auto sm:-right-[24px] sm:translate-x-1/2",
-                pos === "right" && "sm:-left-[24px] sm:-translate-x-1/2",
-                pos === "wide" && "sm:left-1/2 sm:-translate-x-1/2",
-              )}
-            >
-              <StarIcon size={15} className="fill-brand-500 text-brand-500" />
-            </span>
+    <>
+      {/* Mobile: single column */}
+      <ol className="relative ml-1 border-l border-line sm:hidden">
+        {items.map((m) => (
+          <li key={m.id} className="relative mb-5 ml-6">
+            <TimelineMarker m={m} pos="mobile" />
+            <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+          </li>
+        ))}
+      </ol>
+
+      {/* Desktop: staggered two-column timeline around a center rail */}
+      <div className="relative hidden before:absolute before:bottom-0 before:left-1/2 before:top-0 before:w-px before:-translate-x-1/2 before:bg-line before:content-[''] sm:block">
+        {segments.map((seg, si) =>
+          seg.kind === "wide" ? (
+            <div key={seg.m.id} className="relative mb-5">
+              <TimelineMarker m={seg.m} pos="wide" />
+              <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} />
+            </div>
           ) : (
-            <span
-              className={cn(
-                "absolute -left-[27px] top-5 z-10 size-2.5 rounded-full border-2 border-paper bg-brand-400",
-                pos === "left" &&
-                  "sm:left-auto sm:-right-[24px] sm:translate-x-1/2",
-                pos === "right" && "sm:-left-[24px] sm:-translate-x-1/2",
-                pos === "wide" && "sm:left-1/2 sm:-translate-x-1/2",
-              )}
-            />
-          )}
-          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
-        </li>
-      ))}
-    </ol>
+            <div key={si} className="mb-5 grid grid-cols-2 gap-x-12">
+              <div className="flex flex-col gap-5">
+                {seg.items
+                  .filter((_, i) => i % 2 === 0)
+                  .map((m) => (
+                    <div key={m.id} className="relative">
+                      <TimelineMarker m={m} pos="left" />
+                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+                    </div>
+                  ))}
+              </div>
+              <div className="flex flex-col gap-5 pt-10">
+                {seg.items
+                  .filter((_, i) => i % 2 === 1)
+                  .map((m) => (
+                    <div key={m.id} className="relative">
+                      <TimelineMarker m={m} pos="right" />
+                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ),
+        )}
+      </div>
+    </>
   );
 }
 
