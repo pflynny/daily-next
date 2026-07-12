@@ -41,6 +41,35 @@ export function WrappedView() {
       "[data-exporting], [data-exporting] * { animation: none !important; transition: none !important; }";
     document.head.appendChild(freeze);
     node.setAttribute("data-exporting", "");
+
+    // The capture must fetch every image; the R2 bucket blocks cross-origin
+    // GETs, so inline remote photos as data URLs via our same-origin proxy.
+    const swapped: { el: HTMLImageElement; src: string }[] = [];
+    const remote = [...node.querySelectorAll("img")].filter(
+      (i) => i.src.startsWith("http") && !i.src.startsWith(location.origin),
+    );
+    await Promise.all(
+      remote.map(async (el) => {
+        try {
+          const res = await fetch(
+            `/api/media-proxy?url=${encodeURIComponent(el.src)}`,
+          );
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error("read failed"));
+            reader.readAsDataURL(blob);
+          });
+          swapped.push({ el, src: el.src });
+          el.src = dataUrl;
+          await el.decode().catch(() => {});
+        } catch {
+          // leave the original src; worst case that photo exports blank
+        }
+      }),
+    );
     // Let the style apply — rAF when visible, timer fallback when the tab
     // is backgrounded (rAF doesn't fire there).
     await new Promise<void>((resolve) => {
@@ -59,6 +88,9 @@ export function WrappedView() {
       // its SVG serialization and draw it to a canvas ourselves.
       const svgUrl = await toSvg(node, {
         backgroundColor: "#faf9f5",
+        // mx-auto's computed margin would offset the clone inside the
+        // capture frame and clip the content — zero it
+        style: { margin: "0" },
         // keep broken/cross-origin images from aborting the whole export
         imagePlaceholder:
           "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
@@ -84,6 +116,7 @@ export function WrappedView() {
     } catch (err) {
       console.error("Wrapped export failed", err);
     } finally {
+      for (const { el, src } of swapped) el.src = src;
       node.removeAttribute("data-exporting");
       freeze.remove();
       setExporting(false);
