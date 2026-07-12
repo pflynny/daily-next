@@ -5,7 +5,8 @@ import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/shared/ui/ToastProvider";
-import { ChevronLeft, NoteIcon, PlusIcon, TrashIcon } from "@/shared/ui/icons";
+import { ChevronLeft, InfoIcon, NoteIcon, PlusIcon, TrashIcon } from "@/shared/ui/icons";
+import { DropdownMenu } from "@/shared/ui/DropdownMenu";
 import { Markdown } from "./Markdown";
 import { useNotes } from "./useNotes";
 import type { Note } from "@/types";
@@ -18,6 +19,22 @@ function updatedLabel(iso: string): string {
     month: "short",
     year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
   });
+}
+
+function timestampLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const date = d.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} · ${time}`;
 }
 
 export function NotesView() {
@@ -182,6 +199,35 @@ function NoteEditor({
             Preview
           </button>
         </div>
+        <DropdownMenu
+          trigger={
+            <button
+              aria-label="Note info"
+              className="rounded-lg p-1.5 text-faint hover:bg-sand hover:text-ink"
+            >
+              <InfoIcon size={16} />
+            </button>
+          }
+        >
+          <div className="space-y-2 px-3 py-2">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+                Created on
+              </div>
+              <div className="whitespace-nowrap text-xs text-ink">
+                {timestampLabel(note.createdAt)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+                Last edited
+              </div>
+              <div className="whitespace-nowrap text-xs text-ink">
+                {timestampLabel(note.updatedAt)}
+              </div>
+            </div>
+          </div>
+        </DropdownMenu>
         <button
           onClick={onDelete}
           aria-label="Delete note"

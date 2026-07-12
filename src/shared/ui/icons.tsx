@@ -166,6 +166,13 @@ export const VideoIcon = (p: IconProps) => (
     <path d="m16 10 5-3v10l-5-3z" />
   </Svg>
 );
+export const InfoIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </Svg>
+);
+
 export const DownloadIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 18.5h15" />
