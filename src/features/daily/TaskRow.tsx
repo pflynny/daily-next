@@ -87,7 +87,7 @@ export function TaskRow({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group relative py-2 pl-6 pr-10",
+          "touch-actions-pad group relative py-2 pl-6",
           isDragging && "opacity-50",
         )}
       >
@@ -127,7 +127,7 @@ export function TaskRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative py-1.5 pl-6 pr-10",
+        "touch-actions-pad group relative py-1.5 pl-6",
         isDragging && "opacity-50",
       )}
     >

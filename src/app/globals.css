@@ -120,6 +120,17 @@
   }
 }
 
+/* Row padding that clears the always-visible action icons on touch devices
+   (where hover-reveal keeps them shown); tighter when they're hover-only. */
+.touch-actions-pad {
+  padding-right: 5.25rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .touch-actions-pad {
+    padding-right: 2.5rem;
+  }
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

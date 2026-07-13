@@ -76,11 +76,11 @@ export function CheckInsView() {
           )}
 
           <section>
-            <div className="mb-2 mt-6 flex items-center justify-between gap-3">
+            <div className="mb-2 mt-6 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-500">
                 History
               </h2>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                 <input
                   type="date"
                   max={today}
@@ -89,7 +89,7 @@ export function CheckInsView() {
                     if (e.target.value) setEditDate(e.target.value);
                   }}
                   aria-label="Add or edit a past day"
-                  className="rounded-lg border border-line bg-paper px-2 py-1 text-xs text-muted outline-none focus:border-brand-400"
+                  className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-2 py-1 text-xs text-muted outline-none focus:border-brand-400 sm:flex-none"
                 />
                 {usedFeelings.length > 0 && (
                   <select
@@ -98,7 +98,7 @@ export function CheckInsView() {
                       setFilter(e.target.value);
                       setLimit(PAGE_SIZE);
                     }}
-                    className="rounded-lg border border-line bg-paper px-2 py-1 text-xs text-muted outline-none focus:border-brand-400"
+                    className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-2 py-1 text-xs text-muted outline-none focus:border-brand-400 sm:flex-none"
                   >
                     <option value="">All feelings</option>
                     {usedFeelings.map(([word, count]) => (
