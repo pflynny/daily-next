@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -63,6 +63,18 @@ export function DailyView() {
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [listsSheet, setListsSheet] = useState(false);
+  // Desktop column count — a per-device display preference.
+  const [dayCount, setDayCount] = useState<1 | 3 | 5>(5);
+  useEffect(() => {
+    const saved = window.localStorage.getItem("daily-day-count");
+    if (saved === "1" || saved === "3" || saved === "5") {
+      setDayCount(Number(saved) as 1 | 3 | 5);
+    }
+  }, []);
+  function changeDayCount(n: 1 | 3 | 5) {
+    setDayCount(n);
+    window.localStorage.setItem("daily-day-count", String(n));
+  }
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const { settings, setSettings } = useAppData();
@@ -82,8 +94,8 @@ export function DailyView() {
   );
 
   const desktopKeys = useMemo(
-    () => consecutiveDays(windowStart, 5).map(toDateKey),
-    [windowStart],
+    () => consecutiveDays(windowStart, dayCount).map(toDateKey),
+    [windowStart, dayCount],
   );
   const mobileKey = toDateKey(currentDay);
   const mobileLabel = dayLabelFromKey(mobileKey);
@@ -144,7 +156,10 @@ export function DailyView() {
 
         {isDesktop ? (
           <div className="flex flex-1 items-center gap-1">
-            <NavButton label="Back 5 days" onClick={() => setWindowStart((d) => addDays(d, -5))}>
+            <NavButton
+              label={`Back ${dayCount} day${dayCount > 1 ? "s" : ""}`}
+              onClick={() => setWindowStart((d) => addDays(d, -dayCount))}
+            >
               <ChevronsLeft size={18} />
             </NavButton>
             <NavButton label="Previous day" onClick={() => setWindowStart((d) => addDays(d, -1))}>
@@ -153,7 +168,10 @@ export function DailyView() {
             <NavButton label="Next day" onClick={() => setWindowStart((d) => addDays(d, 1))}>
               <ChevronRight size={18} />
             </NavButton>
-            <NavButton label="Forward 5 days" onClick={() => setWindowStart((d) => addDays(d, 5))}>
+            <NavButton
+              label={`Forward ${dayCount} day${dayCount > 1 ? "s" : ""}`}
+              onClick={() => setWindowStart((d) => addDays(d, dayCount))}
+            >
               <ChevronsRight size={18} />
             </NavButton>
             <button
@@ -162,6 +180,23 @@ export function DailyView() {
             >
               <TodayIcon size={16} /> Today
             </button>
+            <div className="ml-2 flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold">
+              {([1, 3, 5] as const).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => changeDayCount(n)}
+                  aria-label={`Show ${n} day${n > 1 ? "s" : ""}`}
+                  className={cn(
+                    "rounded-md px-2 py-1",
+                    dayCount === n
+                      ? "bg-brand-700 text-white"
+                      : "text-muted hover:text-ink",
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
             <div className="ml-auto flex items-center gap-1.5">
               <button
                 onClick={toggleLists}
@@ -234,7 +269,14 @@ export function DailyView() {
         onDragEnd={handleDragEnd}
       >
         {isDesktop ? (
-          <div className="grid min-h-0 flex-1 grid-cols-5">
+          <div
+            className={cn(
+              "grid min-h-0 flex-1",
+              dayCount === 5 && "grid-cols-5",
+              dayCount === 3 && "grid-cols-3",
+              dayCount === 1 && "mx-auto w-full max-w-3xl grid-cols-1",
+            )}
+          >
             {desktopKeys.map((key) => {
               const { incomplete, completed } = getDay(key);
               return (
