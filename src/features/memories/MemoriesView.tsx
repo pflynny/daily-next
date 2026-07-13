@@ -74,35 +74,44 @@ export function MemoriesView() {
     });
   }
 
+  const viewControls = (
+    <>
+      <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
+        <button
+          onClick={() => setView("year")}
+          className={cn(
+            "rounded-md px-2 py-1",
+            view === "year" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+          )}
+        >
+          Year
+        </button>
+        <button
+          onClick={() => setView("all")}
+          className={cn(
+            "rounded-md px-2 py-1",
+            view === "all" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+          )}
+        >
+          All
+        </button>
+      </div>
+      {view === "year" && <YearPicker year={year} onChange={setYear} min={1900} />}
+    </>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title="MEMORIES"
         subtitle={timeline.length ? `${timeline.length} captured` : undefined}
+        below={
+          <div className="mt-2 flex items-center gap-2 sm:hidden">
+            {viewControls}
+          </div>
+        }
       >
-        <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
-          <button
-            onClick={() => setView("year")}
-            className={cn(
-              "rounded-md px-2 py-1",
-              view === "year" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
-            )}
-          >
-            Year
-          </button>
-          <button
-            onClick={() => setView("all")}
-            className={cn(
-              "rounded-md px-2 py-1",
-              view === "all" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
-            )}
-          >
-            All
-          </button>
-        </div>
-        {view === "year" && (
-          <YearPicker year={year} onChange={setYear} min={1900} />
-        )}
+        <div className="hidden items-center gap-2 sm:flex">{viewControls}</div>
         <button
           onClick={() => setAdding(true)}
           className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800"
