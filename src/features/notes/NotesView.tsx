@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/shared/ui/ToastProvider";
 import { ChevronLeft, InfoIcon, NoteIcon, PlusIcon, TrashIcon } from "@/shared/ui/icons";
 import { DropdownMenu } from "@/shared/ui/DropdownMenu";
-import { Markdown } from "./Markdown";
+import { Markdown } from "@/shared/ui/Markdown";
 import { useNotes } from "./useNotes";
 import type { Note } from "@/types";
 

@@ -15,6 +15,7 @@ import { useToast } from "@/shared/ui/ToastProvider";
 import { ChevronLeft, ChevronRight, MoreIcon, PlusIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
 import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
 import { ActiveDragChip } from "@/shared/components/ActiveDragChip";
+import { NotesField } from "@/shared/components/NotesField";
 import { useTasks } from "@/features/daily/useTasks";
 import { useLists } from "./useLists";
 import { ListColumn } from "./ListColumn";
@@ -311,21 +312,14 @@ export function ListsPanel() {
                 className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
               />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-                Notes
-              </span>
-              <textarea
-                value={detailItem.notes}
-                onChange={(e) => {
-                  lists.updateItem(detailItem, { notes: e.target.value });
-                  setDetailItem({ ...detailItem, notes: e.target.value });
-                }}
-                rows={5}
-                placeholder="Add details…"
-                className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
-              />
-            </label>
+            <NotesField
+              value={detailItem.notes}
+              placeholder="Add details… (markdown works)"
+              onChange={(notes) => {
+                lists.updateItem(detailItem, { notes });
+                setDetailItem({ ...detailItem, notes });
+              }}
+            />
           </>
         )}
       </Sheet>

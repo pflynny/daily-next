@@ -1,6 +1,7 @@
 "use client";
 
 import { Sheet } from "@/shared/ui/Sheet";
+import { NotesField } from "@/shared/components/NotesField";
 import { TrashIcon } from "@/shared/ui/icons";
 import { formatLongDate } from "@/lib/utils/date";
 import type { Task } from "@/types";
@@ -59,18 +60,10 @@ export function TaskDetailSheet({
         />
       </label>
 
-      <label className="mb-4 block">
-        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-          Notes
-        </span>
-        <textarea
-          value={task.notes}
-          onChange={(e) => onUpdate(task, { notes: e.target.value })}
-          rows={5}
-          placeholder="Add details, links, context…"
-          className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
-        />
-      </label>
+      <NotesField
+        value={task.notes}
+        onChange={(notes) => onUpdate(task, { notes })}
+      />
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
