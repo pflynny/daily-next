@@ -9,7 +9,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
@@ -39,6 +38,7 @@ import { OPEN_SEARCH_EVENT } from "@/features/search/CommandPalette";
 import { ListsPanel } from "@/features/lists/ListsPanel";
 import { QuotePanel } from "@/features/panel/QuotePanel";
 import { CheckInPrompt } from "@/features/checkins/CheckInPrompt";
+import { ActiveDragChip } from "@/shared/components/ActiveDragChip";
 import { useTasks } from "./useTasks";
 import { DayColumn } from "./DayColumn";
 import { TaskDetailSheet } from "./TaskDetailSheet";
@@ -61,7 +61,6 @@ export function DailyView() {
   const [windowStart, setWindowStart] = useState(() => new Date());
   const [currentDay, setCurrentDay] = useState(() => new Date());
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [listsSheet, setListsSheet] = useState(false);
   // Desktop column count — a per-device display preference.
   const [dayCount, setDayCount] = useState<1 | 3 | 5>(5);
@@ -106,17 +105,8 @@ export function DailyView() {
     setCurrentDay(now);
   }
 
-  function handleDragStart(e: DragStartEvent) {
-    if (e.active.data.current?.type !== "task") return;
-    const date = e.active.data.current?.date as string | undefined;
-    if (!date) return;
-    const found = getDay(date).all.find((t) => t.id === String(e.active.id));
-    setActiveTask(found ?? null);
-  }
-
   function handleDragEnd(e: DragEndEvent) {
     if (e.active.data.current?.type !== "task") return; // list items handled in ListsPanel
-    setActiveTask(null);
     const { active, over } = e;
     if (!over) return;
     const activeDate = active.data.current?.date as string | undefined;
@@ -265,7 +255,6 @@ export function DailyView() {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         {isDesktop ? (
@@ -335,11 +324,7 @@ export function DailyView() {
         )}
 
         <DragOverlay>
-          {activeTask ? (
-            <div className="rounded-lg border border-brand-200 bg-surface px-3 py-1.5 text-sm text-ink shadow-lg">
-              {activeTask.text}
-            </div>
-          ) : null}
+          <ActiveDragChip kind="task" className="text-sm" />
         </DragOverlay>
 
         {/* Lists panel — collapsible on desktop, a sheet on mobile.

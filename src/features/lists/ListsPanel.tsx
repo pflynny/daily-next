@@ -5,7 +5,6 @@ import {
   DragOverlay,
   useDndMonitor,
   type DragEndEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
@@ -15,6 +14,7 @@ import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
 import { ChevronLeft, ChevronRight, MoreIcon, PlusIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
 import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
+import { ActiveDragChip } from "@/shared/components/ActiveDragChip";
 import { useTasks } from "@/features/daily/useTasks";
 import { useLists } from "./useLists";
 import { ListColumn } from "./ListColumn";
@@ -32,7 +32,6 @@ export function ListsPanel() {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [tabDraft, setTabDraft] = useState("");
   const [detailItem, setDetailItem] = useState<ListItem | null>(null);
-  const [activeItem, setActiveItem] = useState<ListItem | null>(null);
   const [confirm, setConfirm] = useState<
     | { kind: "group"; id: string; label: string }
     | { kind: "list"; id: string; label: string }
@@ -79,16 +78,8 @@ export function ListsPanel() {
   // Drags are owned by the DailyView-level DndContext; this monitor picks
   // up only list-item drags (task drags are handled up there).
   useDndMonitor({
-    onDragStart(e: DragStartEvent) {
-      if (e.active.data.current?.type !== "listItem") return;
-      setActiveItem(findItem(String(e.active.id)));
-    },
-    onDragCancel() {
-      setActiveItem(null);
-    },
     onDragEnd(e: DragEndEvent) {
       if (e.active.data.current?.type !== "listItem") return;
-      setActiveItem(null);
       const { active, over } = e;
       if (!over || !activeGroup) return;
       const activeId = String(active.id);
@@ -260,11 +251,7 @@ export function ListsPanel() {
           </div>
 
           <DragOverlay>
-            {activeItem ? (
-              <div className="rounded-lg border border-brand-200 bg-surface px-3 py-1.5 text-xs text-ink shadow-lg">
-                {activeItem.text}
-              </div>
-            ) : null}
+            <ActiveDragChip kind="listItem" className="text-xs" />
           </DragOverlay>
         </>
       )}
