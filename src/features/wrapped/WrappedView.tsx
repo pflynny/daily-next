@@ -42,34 +42,8 @@ export function WrappedView() {
     document.head.appendChild(freeze);
     node.setAttribute("data-exporting", "");
 
-    // The capture must fetch every image; the R2 bucket blocks cross-origin
-    // GETs, so inline remote photos as data URLs via our same-origin proxy.
-    const swapped: { el: HTMLImageElement; src: string }[] = [];
-    const remote = [...node.querySelectorAll("img")].filter(
-      (i) => i.src.startsWith("http") && !i.src.startsWith(location.origin),
-    );
-    await Promise.all(
-      remote.map(async (el) => {
-        try {
-          const res = await fetch(
-            `/api/media-proxy?url=${encodeURIComponent(el.src)}`,
-          );
-          if (!res.ok) return;
-          const blob = await res.blob();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error("read failed"));
-            reader.readAsDataURL(blob);
-          });
-          swapped.push({ el, src: el.src });
-          el.src = dataUrl;
-          await el.decode().catch(() => {});
-        } catch {
-          // leave the original src; worst case that photo exports blank
-        }
-      }),
-    );
+    // Photos are served same-origin via the authenticated /api/media route,
+    // so the capture's fetches carry the session cookie automatically.
     // Let the style apply — rAF when visible, timer fallback when the tab
     // is backgrounded (rAF doesn't fire there).
     await new Promise<void>((resolve) => {
@@ -116,7 +90,6 @@ export function WrappedView() {
     } catch (err) {
       console.error("Wrapped export failed", err);
     } finally {
-      for (const { el, src } of swapped) el.src = src;
       node.removeAttribute("data-exporting");
       freeze.remove();
       setExporting(false);

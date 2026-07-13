@@ -2,6 +2,7 @@ import "server-only";
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -10,6 +11,10 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
  * Cloudflare R2 storage adapter (S3-compatible).
  * This file is the single seam for the media provider — swap it to move
  * to a different bucket/provider without touching the rest of the app.
+ *
+ * The bucket is PRIVATE: objects are never served from a public host.
+ * Media is streamed through /api/media/[...key], which authenticates the
+ * user and checks the key belongs to them.
  */
 
 interface R2Config {
@@ -17,7 +22,6 @@ interface R2Config {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
-  publicHost: string;
 }
 
 function readConfig(): R2Config | null {
@@ -25,11 +29,10 @@ function readConfig(): R2Config | null {
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const bucket = process.env.R2_BUCKET;
-  const publicHost = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST;
-  if (!endpoint || !accessKeyId || !secretAccessKey || !bucket || !publicHost) {
+  if (!endpoint || !accessKeyId || !secretAccessKey || !bucket) {
     return null;
   }
-  return { endpoint, accessKeyId, secretAccessKey, bucket, publicHost };
+  return { endpoint, accessKeyId, secretAccessKey, bucket };
 }
 
 let client: S3Client | null = null;
@@ -55,13 +58,9 @@ export function isStorageConfigured(): boolean {
   return readConfig() !== null;
 }
 
-export function publicUrl(key: string): string {
-  const config = readConfig();
-  // Tolerate either "pub-xxx.r2.dev" or "https://pub-xxx.r2.dev/" in the env.
-  const host = (config?.publicHost ?? "")
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
-  return `https://${host}/${key}`;
+/** App-relative URL the browser uses; served by the authenticated media route. */
+export function mediaUrl(key: string): string {
+  return `/api/media/${key}`;
 }
 
 export async function createPresignedUpload(
@@ -78,7 +77,30 @@ export async function createPresignedUpload(
   const uploadUrl = await getSignedUrl(getClient(config), command, {
     expiresIn: 600,
   });
-  return { uploadUrl, publicUrl: publicUrl(key) };
+  return { uploadUrl, publicUrl: mediaUrl(key) };
+}
+
+/** Fetch an object for streaming to an authenticated user. */
+export async function getObject(key: string): Promise<{
+  body: ReadableStream;
+  contentType: string;
+  contentLength?: number;
+} | null> {
+  const config = readConfig();
+  if (!config) return null;
+  try {
+    const res = await getClient(config).send(
+      new GetObjectCommand({ Bucket: config.bucket, Key: key }),
+    );
+    if (!res.Body) return null;
+    return {
+      body: res.Body.transformToWebStream() as ReadableStream,
+      contentType: res.ContentType ?? "application/octet-stream",
+      contentLength: res.ContentLength,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteObject(key: string): Promise<void> {
