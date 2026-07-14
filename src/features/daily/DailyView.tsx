@@ -22,6 +22,7 @@ import {
   todayKey,
 } from "@/lib/utils/date";
 import {
+  CalendarIcon,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -107,6 +108,7 @@ export function DailyView() {
   );
   const mobileKey = toDateKey(currentDay);
   const mobileLabel = dayLabelFromKey(mobileKey);
+  const onToday = toDateKey(windowStart) === todayKey();
 
   function goToday() {
     const now = new Date();
@@ -155,31 +157,7 @@ export function DailyView() {
 
         {isDesktop ? (
           <div className="flex flex-1 items-center gap-1">
-            <NavButton
-              label={`Back ${dayCount} day${dayCount > 1 ? "s" : ""}`}
-              onClick={() => setWindowStart((d) => addDays(d, -dayCount))}
-            >
-              <ChevronsLeft size={18} />
-            </NavButton>
-            <NavButton label="Previous day" onClick={() => setWindowStart((d) => addDays(d, -1))}>
-              <ChevronLeft size={18} />
-            </NavButton>
-            <NavButton label="Next day" onClick={() => setWindowStart((d) => addDays(d, 1))}>
-              <ChevronRight size={18} />
-            </NavButton>
-            <NavButton
-              label={`Forward ${dayCount} day${dayCount > 1 ? "s" : ""}`}
-              onClick={() => setWindowStart((d) => addDays(d, dayCount))}
-            >
-              <ChevronsRight size={18} />
-            </NavButton>
-            <button
-              onClick={goToday}
-              className="ml-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted hover:bg-sand hover:text-ink"
-            >
-              <TodayIcon size={16} /> Today
-            </button>
-            <div className="ml-2 flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold">
+            <div className="ml-1 flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold">
               {([1, 3, 5] as const).map((n) => (
                 <button
                   key={n}
@@ -196,11 +174,12 @@ export function DailyView() {
                 </button>
               ))}
             </div>
-            <div className="ml-auto flex items-center gap-1.5">
+
+            <div className="ml-auto flex items-center gap-1">
               <button
                 onClick={toggleLists}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-sand hover:text-ink",
+                  "mr-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-sand hover:text-ink",
                   showLists ? "text-brand-700" : "text-muted",
                 )}
               >
@@ -210,15 +189,46 @@ export function DailyView() {
                   className={cn("transition-transform", !showLists && "rotate-180")}
                 />
               </button>
-              <input
-                type="date"
-                value={toDateKey(windowStart)}
-                onChange={(e) =>
-                  e.target.value &&
-                  setWindowStart(new Date(`${e.target.value}T00:00:00`))
-                }
-                className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs text-muted outline-none focus:border-brand-400"
-              />
+              {!onToday && (
+                <button
+                  onClick={goToday}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted hover:bg-sand hover:text-ink"
+                >
+                  <TodayIcon size={16} /> Today
+                </button>
+              )}
+              <NavButton
+                label={`Back ${dayCount} day${dayCount > 1 ? "s" : ""}`}
+                onClick={() => setWindowStart((d) => addDays(d, -dayCount))}
+              >
+                <ChevronsLeft size={18} />
+              </NavButton>
+              <NavButton label="Previous day" onClick={() => setWindowStart((d) => addDays(d, -1))}>
+                <ChevronLeft size={18} />
+              </NavButton>
+              <NavButton label="Next day" onClick={() => setWindowStart((d) => addDays(d, 1))}>
+                <ChevronRight size={18} />
+              </NavButton>
+              <NavButton
+                label={`Forward ${dayCount} day${dayCount > 1 ? "s" : ""}`}
+                onClick={() => setWindowStart((d) => addDays(d, dayCount))}
+              >
+                <ChevronsRight size={18} />
+              </NavButton>
+              {/* Calendar icon; the invisible input on top opens the native picker */}
+              <div className="relative rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink">
+                <CalendarIcon size={18} />
+                <input
+                  type="date"
+                  value={toDateKey(windowStart)}
+                  onChange={(e) =>
+                    e.target.value &&
+                    setWindowStart(new Date(`${e.target.value}T00:00:00`))
+                  }
+                  aria-label="Jump to date"
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </div>
             </div>
           </div>
         ) : (
@@ -237,16 +247,15 @@ export function DailyView() {
             <NavButton label="Next day" onClick={() => setCurrentDay((d) => addDays(d, 1))}>
               <ChevronRight size={20} />
             </NavButton>
-            <button
-              onClick={goToday}
-              aria-label="Today"
-              className={cn(
-                "ml-1 rounded-lg p-1.5 hover:bg-sand",
-                mobileKey === todayKey() ? "text-brand-600" : "text-muted",
-              )}
-            >
-              <TodayIcon size={18} />
-            </button>
+            {mobileKey !== todayKey() && (
+              <button
+                onClick={goToday}
+                aria-label="Today"
+                className="ml-1 rounded-lg p-1.5 text-muted hover:bg-sand"
+              >
+                <TodayIcon size={18} />
+              </button>
+            )}
             <button
               onClick={() => setListsSheet(true)}
               aria-label="Open lists"
