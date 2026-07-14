@@ -1,6 +1,7 @@
 "use client";
 
 import { Sheet } from "@/shared/ui/Sheet";
+import { NotesField } from "@/shared/components/NotesField";
 import { TrashIcon } from "@/shared/ui/icons";
 import type { CollectionItem, CollectionMediaType } from "@/types";
 
@@ -119,18 +120,26 @@ export function ItemDetailSheet({
         </label>
       </div>
 
-      <label className="block">
+      <label className="mb-4 block">
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
           My review
         </span>
         <textarea
           value={item.review}
           onChange={(e) => onUpdate(item, { review: e.target.value })}
-          rows={5}
+          rows={4}
           placeholder="What did you think?"
           className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
         />
       </label>
+
+      <NotesField
+        label="Notes & quotes"
+        value={item.notes}
+        rows={8}
+        placeholder={"Passages worth keeping…\n\n**p. 84** — the line that stuck with me\n\n**p. 132** — …"}
+        onChange={(notes) => onUpdate(item, { notes })}
+      />
     </Sheet>
   );
 }

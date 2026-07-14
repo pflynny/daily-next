@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
+import { NoteIcon } from "@/shared/ui/icons";
 import type { CollectionItem } from "@/types";
 
 export function CollectionItemRow({
@@ -25,20 +26,25 @@ export function CollectionItemRow({
           </span>
         )}
       </span>
-      {typeof item.rating === "number" && (
-        <span
-          className={cn(
-            "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold",
-            item.rating >= 8
-              ? "bg-brand-600 text-white"
-              : item.rating >= 5
-                ? "bg-brand-100 text-brand-800"
-                : "bg-sand text-muted",
-          )}
-        >
-          {item.rating}/10
-        </span>
-      )}
+      <span className="flex shrink-0 items-center gap-1.5">
+        {item.notes.trim() && (
+          <NoteIcon size={13} className="text-brand-500" />
+        )}
+        {typeof item.rating === "number" && (
+          <span
+            className={cn(
+              "rounded-md px-1.5 py-0.5 text-[11px] font-bold",
+              item.rating >= 8
+                ? "bg-brand-600 text-white"
+                : item.rating >= 5
+                  ? "bg-brand-100 text-brand-800"
+                  : "bg-sand text-muted",
+            )}
+          >
+            {item.rating}/10
+          </span>
+        )}
+      </span>
     </button>
   );
 }

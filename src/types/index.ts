@@ -73,6 +73,8 @@ export interface CollectionItem {
   creator: string;
   rating: number | null; // 1..10
   review: string;
+  /** Markdown — passages, quotes, page references. */
+  notes: string;
   mediaType: CollectionMediaType;
   coverUrl: string | null; // reserved for future cover-art APIs
   position: number;

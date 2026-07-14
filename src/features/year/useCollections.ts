@@ -94,6 +94,7 @@ export function useCollections() {
           creator: "",
           rating: null,
           review: "",
+          notes: "",
           mediaType: "other" as CollectionMediaType,
           coverUrl: null,
           position: count,
