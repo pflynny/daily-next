@@ -147,17 +147,10 @@ export function DailyView() {
         <h1 className="font-mono text-lg font-bold tracking-tight text-ink">
           DAILY
         </h1>
-        <button
-          onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
-          aria-label="Search"
-          className="rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink"
-        >
-          <SearchIcon size={18} />
-        </button>
 
         {isDesktop ? (
           <div className="flex flex-1 items-center gap-1">
-            <div className="ml-1 flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold">
+            <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold">
               {([1, 3, 5] as const).map((n) => (
                 <button
                   key={n}
@@ -174,21 +167,15 @@ export function DailyView() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+              aria-label="Search"
+              className="rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink"
+            >
+              <SearchIcon size={18} />
+            </button>
 
             <div className="ml-auto flex items-center gap-1">
-              <button
-                onClick={toggleLists}
-                className={cn(
-                  "mr-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-sand hover:text-ink",
-                  showLists ? "text-brand-700" : "text-muted",
-                )}
-              >
-                <ListIcon size={15} /> Lists
-                <ChevronDown
-                  size={13}
-                  className={cn("transition-transform", !showLists && "rotate-180")}
-                />
-              </button>
               {!onToday && (
                 <button
                   onClick={goToday}
@@ -229,10 +216,30 @@ export function DailyView() {
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
               </div>
+              <button
+                onClick={toggleLists}
+                className={cn(
+                  "ml-1 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-sand hover:text-ink",
+                  showLists ? "text-brand-700" : "text-muted",
+                )}
+              >
+                <ListIcon size={15} /> Lists
+                <ChevronDown
+                  size={13}
+                  className={cn("transition-transform", !showLists && "rotate-180")}
+                />
+              </button>
             </div>
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-end gap-1">
+            <button
+              onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+              aria-label="Search"
+              className="mr-auto rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink"
+            >
+              <SearchIcon size={18} />
+            </button>
             <NavButton label="Previous day" onClick={() => setCurrentDay((d) => addDays(d, -1))}>
               <ChevronLeft size={20} />
             </NavButton>
