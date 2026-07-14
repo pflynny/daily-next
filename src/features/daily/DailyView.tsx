@@ -5,9 +5,11 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -45,6 +47,13 @@ import { TaskDetailSheet } from "./TaskDetailSheet";
 import type { Task } from "@/types";
 
 const SWIPE_THRESHOLD = 48;
+
+/** Drop on whatever is under the pointer; closest-center let nearby task
+ *  rows out-compete adjacent day columns, making short moves impossible. */
+const pointerFirstCollision: CollisionDetection = (args) => {
+  const within = pointerWithin(args);
+  return within.length > 0 ? within : rectIntersection(args);
+};
 
 export function DailyView() {
   const isDesktop = useIsDesktop();
@@ -254,7 +263,7 @@ export function DailyView() {
       {/* Days */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={pointerFirstCollision}
         onDragEnd={handleDragEnd}
       >
         {isDesktop ? (
