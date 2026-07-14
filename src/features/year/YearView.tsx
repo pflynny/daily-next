@@ -6,7 +6,8 @@ import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
 import { cn } from "@/lib/utils/cn";
-import { ChevronLeft, StackIcon, StarIcon } from "@/shared/ui/icons";
+import { ChevronLeft, NoteIcon, StackIcon, StarIcon } from "@/shared/ui/icons";
+import { Markdown } from "@/shared/ui/Markdown";
 import { useCollections } from "./useCollections";
 import { CollectionColumn } from "./CollectionColumn";
 import { ItemDetailSheet } from "./ItemDetailSheet";
@@ -19,6 +20,7 @@ export function YearView() {
   const toast = useToast();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [view, setView] = useState<"lists" | "quotes">("lists");
   const [sort, setSort] = useState<"added" | "rating">("added");
   const [detailItem, setDetailItem] = useState<CollectionItem | null>(null);
   const [confirmCollection, setConfirmCollection] =
@@ -33,21 +35,44 @@ export function YearView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title={`YEAR ${selectedYear}`}>
-        <button
-          onClick={() => setSort((s) => (s === "added" ? "rating" : "added"))}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide",
-            sort === "rating"
-              ? "border-brand-500 text-brand-700"
-              : "border-line text-muted hover:text-ink",
-          )}
-        >
-          <StarIcon size={14} /> {sort === "rating" ? "Top rated" : "Recent"}
-        </button>
+      <PageHeader title={view === "quotes" ? "QUOTES" : `YEAR ${selectedYear}`}>
+        <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          <button
+            onClick={() => setView("lists")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "lists" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            Lists
+          </button>
+          <button
+            onClick={() => setView("quotes")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "quotes" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            Quotes
+          </button>
+        </div>
+        {view === "lists" && (
+          <button
+            onClick={() => setSort((s) => (s === "added" ? "rating" : "added"))}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide",
+              sort === "rating"
+                ? "border-brand-500 text-brand-700"
+                : "border-line text-muted hover:text-ink",
+            )}
+          >
+            <StarIcon size={14} /> {sort === "rating" ? "Top rated" : "Recent"}
+          </button>
+        )}
       </PageHeader>
 
       {/* Year tabs */}
+      {view === "lists" && (
       <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-line px-4 py-2">
         <button
           onClick={() => setSelectedYear((y) => y - 1)}
@@ -71,9 +96,69 @@ export function YearView() {
           </button>
         ))}
       </div>
+      )}
 
       <Screen>
-        {collections.length === 0 ? (
+        {view === "quotes" ? (
+          col.notedByYear.length === 0 ? (
+            <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
+              <NoteIcon size={40} className="text-brand-300" />
+              <h2 className="mt-4 text-sm font-semibold text-ink">
+                No notes yet
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Open an entry and add “Notes &amp; quotes” — passages and page
+                references collect here for reading back.
+              </p>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-2xl space-y-8 p-4 pb-12">
+              {col.notedByYear.map(([year, entries]) => (
+                <section key={year}>
+                  <h2 className="mb-3 font-mono text-2xl font-bold tracking-tight text-brand-700">
+                    {year}
+                  </h2>
+                  <div className="space-y-4">
+                    {entries.map(({ item, collectionName }) => (
+                      <article
+                        key={item.id}
+                        className="rounded-2xl border border-line bg-surface p-4"
+                      >
+                        <button
+                          onClick={() => setDetailItem(item)}
+                          className="mb-2 flex w-full items-baseline justify-between gap-3 text-left"
+                        >
+                          <span className="min-w-0">
+                            <span className="text-sm font-semibold text-ink">
+                              {item.title}
+                            </span>
+                            {item.creator && (
+                              <span className="text-xs text-muted">
+                                {" "}
+                                · {item.creator}
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            <span className="rounded-full bg-sand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                              {collectionName}
+                            </span>
+                            {typeof item.rating === "number" && (
+                              <span className="text-[11px] font-bold text-brand-600">
+                                {item.rating}/10
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                        <Markdown>{item.notes}</Markdown>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )
+        ) : collections.length === 0 ? (
           <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
             <StackIcon size={40} className="text-brand-300" />
             <h2 className="mt-4 text-sm font-semibold text-ink">

@@ -23,6 +23,23 @@ export function useCollections() {
     [collections, collectionItems],
   );
 
+  /** Entries with notes, across all years — [year, entries[]] newest first. */
+  const notedByYear = useMemo(() => {
+    const byYear = new Map<
+      number,
+      { item: CollectionItem; collectionName: string }[]
+    >();
+    for (const item of collectionItems) {
+      if (!item.notes.trim()) continue;
+      const collection = collections.find((c) => c.id === item.collectionId);
+      if (!collection) continue;
+      const arr = byYear.get(collection.year) ?? [];
+      arr.push({ item, collectionName: collection.name });
+      byYear.set(collection.year, arr);
+    }
+    return Array.from(byYear.entries()).sort((a, b) => b[0] - a[0]);
+  }, [collections, collectionItems]);
+
   const addCollection = useCallback(
     (year: number, name: string) => {
       const trimmed = name.trim();
@@ -125,6 +142,7 @@ export function useCollections() {
   return {
     years,
     forYear,
+    notedByYear,
     addCollection,
     renameCollection,
     setBanner,
