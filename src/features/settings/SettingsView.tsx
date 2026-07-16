@@ -15,6 +15,7 @@ import { orderNavItems } from "@/shared/components/BottomNav";
 import { ChevronUp, ChevronDown } from "@/shared/ui/icons";
 import { Switch } from "@/shared/ui/Switch";
 import { STATE_KEYS, type StateKey } from "@/lib/db/entities";
+import pkg from "../../../package.json";
 import { parseCairnbookBackup, parseGarminFitness } from "./fitnessImport";
 
 function FitnessImports() {
@@ -400,7 +401,7 @@ export function SettingsView() {
             )}
           </Section>
 
-          <p className="pb-6 text-center text-xs text-faint">Daily · v3</p>
+          <p className="pb-6 text-center text-xs text-faint">Daily · v{pkg.version}</p>
         </div>
       </Screen>
     </div>
