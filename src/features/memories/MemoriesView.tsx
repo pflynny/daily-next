@@ -1,6 +1,13 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -325,26 +332,6 @@ function TimelineMarker({ m, pos }: { m: MemoryView; pos: MarkerPos }) {
   );
 }
 
-type Segment =
-  | { kind: "wide"; m: MemoryView }
-  | { kind: "run"; items: MemoryView[] };
-
-function segmentsOf(items: MemoryView[]): Segment[] {
-  // Runs of normal cards flow as two independent staggered columns (no
-  // paired row heights, so no gaps); full-width cards break the run.
-  const segments: Segment[] = [];
-  for (const m of items) {
-    if (m.fullWidth) {
-      segments.push({ kind: "wide", m });
-    } else {
-      const last = segments[segments.length - 1];
-      if (last?.kind === "run") last.items.push(m);
-      else segments.push({ kind: "run", items: [m] });
-    }
-  }
-  return segments;
-}
-
 function monthGroupsOf(items: MemoryView[]) {
   const groups: { key: string; label: string; items: MemoryView[] }[] = [];
   for (const m of items) {
@@ -366,6 +353,157 @@ function monthGroupsOf(items: MemoryView[]) {
   return groups;
 }
 
+const CARD_GAP = 20;
+const CHIP_ROW = 34; // month chip height + breathing room
+
+type Placement = { side: MarkerPos; top: number };
+
+/**
+ * Facebook-timeline placement: walk the feed in date order and drop each
+ * card onto whichever side is currently shorter. Later cards can never sit
+ * above earlier ones, so chronology always reads downward, with no gaps.
+ * Month chips act as full-width sync points for wayfinding.
+ * (JS-measured for now — swap for CSS masonry once it ships in browsers.)
+ */
+function MasonryTimeline({
+  items,
+  onEdit,
+  onDelete,
+  onViewImage,
+}: {
+  items: MemoryView[];
+  onEdit: (m: MemoryView) => void;
+  onDelete: (m: MemoryView) => void;
+  onViewImage: (url: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef(new Map<string, HTMLDivElement>());
+  const [layout, setLayout] = useState<{
+    positions: Map<string, Placement>;
+    chips: { key: string; label: string; top: number }[];
+    height: number;
+  } | null>(null);
+
+  const compute = useCallback(() => {
+    const positions = new Map<string, Placement>();
+    const chips: { key: string; label: string; top: number }[] = [];
+    let left = 0;
+    let right = 0;
+    let month = "";
+    for (const m of items) {
+      const el = cardRefs.current.get(m.id);
+      if (!el) return; // wait until every card is mounted
+      const h = el.offsetHeight;
+      const monthKey = m.occurredOn.slice(0, 7);
+      if (monthKey !== month) {
+        month = monthKey;
+        const base = Math.max(left, right);
+        chips.push({
+          key: monthKey,
+          label: new Date(`${m.occurredOn}T00:00:00`).toLocaleDateString(
+            undefined,
+            { month: "long" },
+          ),
+          top: base,
+        });
+        left = right = base + CHIP_ROW;
+      }
+      if (m.fullWidth) {
+        const base = Math.max(left, right);
+        positions.set(m.id, { side: "wide", top: base });
+        left = right = base + h + CARD_GAP;
+      } else if (left <= right) {
+        positions.set(m.id, { side: "left", top: left });
+        left += h + CARD_GAP;
+      } else {
+        positions.set(m.id, { side: "right", top: right });
+        right += h + CARD_GAP;
+      }
+    }
+    setLayout({ positions, chips, height: Math.max(left, right) });
+  }, [items]);
+
+  useLayoutEffect(() => {
+    compute();
+  }, [compute]);
+
+  // Re-place when the container resizes or any card's height changes
+  // (text rewrap, media loading in, etc.). Measure on the next frame so
+  // reflow from the size change has fully settled first.
+  useEffect(() => {
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => compute());
+    };
+    const ro = new ResizeObserver(schedule);
+    if (containerRef.current) ro.observe(containerRef.current);
+    cardRefs.current.forEach((el) => ro.observe(el));
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", schedule);
+    };
+  }, [compute]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative", !layout && "invisible")}
+      style={{ height: layout?.height }}
+    >
+      {/* center rail */}
+      <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-line" />
+
+      {layout?.chips.map((chip) => (
+        <div
+          key={chip.key}
+          className="absolute left-0 right-0 z-10 flex justify-center"
+          style={{ top: chip.top }}
+        >
+          <span className="rounded-full border border-line bg-paper px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
+            {chip.label}
+          </span>
+        </div>
+      ))}
+
+      {items.map((m) => {
+        const pos = layout?.positions.get(m.id);
+        const side = pos?.side ?? "left";
+        return (
+          <div
+            key={m.id}
+            ref={(el) => {
+              if (el) cardRefs.current.set(m.id, el);
+              else cardRefs.current.delete(m.id);
+            }}
+            className={cn(
+              "absolute",
+              side === "wide"
+                ? "left-0 right-0"
+                : "w-[calc(50%-24px)]",
+              side === "left" && "left-0",
+              side === "right" && "right-0",
+            )}
+            style={{ top: pos?.top ?? 0 }}
+          >
+            <div className="relative">
+              <TimelineMarker m={m} pos={side} />
+              <MemoryCard
+                memory={m}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewImage={onViewImage}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TimelineGrid({
   items,
   onEdit,
@@ -377,13 +515,11 @@ function TimelineGrid({
   onDelete: (m: MemoryView) => void;
   onViewImage: (url: string) => void;
 }) {
-  // Month blocks keep the staggered columns from drifting across time:
-  // the columns can only get out of step within a single month.
   const months = monthGroupsOf(items);
 
   return (
     <>
-      {/* Mobile: single column */}
+      {/* Mobile: single column with month labels */}
       <ol className="relative ml-1 border-l border-line sm:hidden">
         {months.map((g) => (
           <Fragment key={g.key}>
@@ -400,48 +536,14 @@ function TimelineGrid({
         ))}
       </ol>
 
-      {/* Desktop: staggered two-column timeline around a center rail */}
-      <div className="relative hidden before:absolute before:bottom-0 before:left-1/2 before:top-0 before:w-px before:-translate-x-1/2 before:bg-line before:content-[''] sm:block">
-        {months.map((g) => (
-          <div key={g.key}>
-            <div className="relative z-10 mb-4 flex justify-center">
-              <span className="rounded-full border border-line bg-paper px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                {g.label}
-              </span>
-            </div>
-            {segmentsOf(g.items).map((seg, si) =>
-              seg.kind === "wide" ? (
-                <div key={seg.m.id} className="relative mb-5">
-                  <TimelineMarker m={seg.m} pos="wide" />
-                  <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-                </div>
-              ) : (
-                <div key={si} className="mb-5 grid grid-cols-2 gap-x-12">
-                  <div className="flex flex-col gap-5">
-                    {seg.items
-                      .filter((_, i) => i % 2 === 0)
-                      .map((m) => (
-                        <div key={m.id} className="relative">
-                          <TimelineMarker m={m} pos="left" />
-                          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-                        </div>
-                      ))}
-                  </div>
-                  <div className="flex flex-col gap-5 pt-8">
-                    {seg.items
-                      .filter((_, i) => i % 2 === 1)
-                      .map((m) => (
-                        <div key={m.id} className="relative">
-                          <TimelineMarker m={m} pos="right" />
-                          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        ))}
+      {/* Desktop: measured timeline placement */}
+      <div className="hidden sm:block">
+        <MasonryTimeline
+          items={items}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onViewImage={onViewImage}
+        />
       </div>
     </>
   );

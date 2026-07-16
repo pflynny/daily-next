@@ -147,6 +147,11 @@ export function MemoryCard({
                       src={m.url}
                       alt=""
                       loading="lazy"
+                      style={
+                        memory.media.length === 1 && m.width && m.height
+                          ? { aspectRatio: `${m.width} / ${m.height}` }
+                          : undefined
+                      }
                       className={cn(
                         "w-full rounded-lg border border-line bg-sand object-cover",
                         memory.media.length === 1 ? "max-h-96 object-contain" : "aspect-square",
@@ -160,6 +165,11 @@ export function MemoryCard({
                     src={m.url}
                     alt=""
                     loading="lazy"
+                    style={
+                      memory.media.length === 1 && m.width && m.height
+                        ? { aspectRatio: `${m.width} / ${m.height}` }
+                        : undefined
+                    }
                     className={cn(
                       "w-full rounded-lg border border-line bg-sand object-cover",
                       memory.media.length === 1 ? "max-h-96 object-contain" : "aspect-square",
