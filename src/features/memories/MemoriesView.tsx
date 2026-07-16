@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -329,17 +329,7 @@ type Segment =
   | { kind: "wide"; m: MemoryView }
   | { kind: "run"; items: MemoryView[] };
 
-function TimelineGrid({
-  items,
-  onEdit,
-  onDelete,
-  onViewImage,
-}: {
-  items: MemoryView[];
-  onEdit: (m: MemoryView) => void;
-  onDelete: (m: MemoryView) => void;
-  onViewImage: (url: string) => void;
-}) {
+function segmentsOf(items: MemoryView[]): Segment[] {
   // Runs of normal cards flow as two independent staggered columns (no
   // paired row heights, so no gaps); full-width cards break the run.
   const segments: Segment[] = [];
@@ -352,52 +342,106 @@ function TimelineGrid({
       else segments.push({ kind: "run", items: [m] });
     }
   }
+  return segments;
+}
+
+function monthGroupsOf(items: MemoryView[]) {
+  const groups: { key: string; label: string; items: MemoryView[] }[] = [];
+  for (const m of items) {
+    const key = m.occurredOn.slice(0, 7);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.items.push(m);
+    } else {
+      groups.push({
+        key,
+        label: new Date(`${m.occurredOn}T00:00:00`).toLocaleDateString(
+          undefined,
+          { month: "long" },
+        ),
+        items: [m],
+      });
+    }
+  }
+  return groups;
+}
+
+function TimelineGrid({
+  items,
+  onEdit,
+  onDelete,
+  onViewImage,
+}: {
+  items: MemoryView[];
+  onEdit: (m: MemoryView) => void;
+  onDelete: (m: MemoryView) => void;
+  onViewImage: (url: string) => void;
+}) {
+  // Month blocks keep the staggered columns from drifting across time:
+  // the columns can only get out of step within a single month.
+  const months = monthGroupsOf(items);
 
   return (
     <>
       {/* Mobile: single column */}
       <ol className="relative ml-1 border-l border-line sm:hidden">
-        {items.map((m) => (
-          <li key={m.id} className="relative mb-5 ml-6">
-            <TimelineMarker m={m} pos="mobile" />
-            <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-          </li>
+        {months.map((g) => (
+          <Fragment key={g.key}>
+            <li className="mb-2 ml-6 text-[10px] font-semibold uppercase tracking-wide text-faint">
+              {g.label}
+            </li>
+            {g.items.map((m) => (
+              <li key={m.id} className="relative mb-5 ml-6">
+                <TimelineMarker m={m} pos="mobile" />
+                <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
+              </li>
+            ))}
+          </Fragment>
         ))}
       </ol>
 
       {/* Desktop: staggered two-column timeline around a center rail */}
       <div className="relative hidden before:absolute before:bottom-0 before:left-1/2 before:top-0 before:w-px before:-translate-x-1/2 before:bg-line before:content-[''] sm:block">
-        {segments.map((seg, si) =>
-          seg.kind === "wide" ? (
-            <div key={seg.m.id} className="relative mb-5">
-              <TimelineMarker m={seg.m} pos="wide" />
-              <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
+        {months.map((g) => (
+          <div key={g.key}>
+            <div className="relative z-10 mb-4 flex justify-center">
+              <span className="rounded-full border border-line bg-paper px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
+                {g.label}
+              </span>
             </div>
-          ) : (
-            <div key={si} className="mb-5 grid grid-cols-2 gap-x-12">
-              <div className="flex flex-col gap-5">
-                {seg.items
-                  .filter((_, i) => i % 2 === 0)
-                  .map((m) => (
-                    <div key={m.id} className="relative">
-                      <TimelineMarker m={m} pos="left" />
-                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-                    </div>
-                  ))}
-              </div>
-              <div className="flex flex-col gap-5 pt-10">
-                {seg.items
-                  .filter((_, i) => i % 2 === 1)
-                  .map((m) => (
-                    <div key={m.id} className="relative">
-                      <TimelineMarker m={m} pos="right" />
-                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ),
-        )}
+            {segmentsOf(g.items).map((seg, si) =>
+              seg.kind === "wide" ? (
+                <div key={seg.m.id} className="relative mb-5">
+                  <TimelineMarker m={seg.m} pos="wide" />
+                  <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
+                </div>
+              ) : (
+                <div key={si} className="mb-5 grid grid-cols-2 gap-x-12">
+                  <div className="flex flex-col gap-5">
+                    {seg.items
+                      .filter((_, i) => i % 2 === 0)
+                      .map((m) => (
+                        <div key={m.id} className="relative">
+                          <TimelineMarker m={m} pos="left" />
+                          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
+                        </div>
+                      ))}
+                  </div>
+                  <div className="flex flex-col gap-5 pt-8">
+                    {seg.items
+                      .filter((_, i) => i % 2 === 1)
+                      .map((m) => (
+                        <div key={m.id} className="relative">
+                          <TimelineMarker m={m} pos="right" />
+                          <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        ))}
       </div>
     </>
   );

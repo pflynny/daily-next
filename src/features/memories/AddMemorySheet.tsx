@@ -241,7 +241,7 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
               <input
                 ref={fileRef}
                 type="file"
-                accept={type === "video" ? "video/*" : "image/*"}
+                accept="image/*,video/*"
                 multiple
                 onChange={(e) => handleFiles(e.target.files)}
                 className="hidden"
@@ -252,9 +252,7 @@ export function AddMemorySheet({ open, onClose, onSubmit }: AddMemorySheetProps)
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 px-4 py-6 text-sm text-brand-700 hover:bg-brand-50 disabled:opacity-60"
               >
                 <UploadIcon size={18} />
-                {uploading
-                  ? "Uploading…"
-                  : `Add ${type === "video" ? "video" : "photos"}`}
+                {uploading ? "Uploading…" : "Add photos & videos"}
               </button>
               {media.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2">

@@ -197,7 +197,7 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
           <input
             ref={fileRef}
             type="file"
-            accept={memory.type === "video" ? "video/*" : "image/*"}
+            accept="image/*,video/*"
             multiple
             onChange={(e) => handleFiles(e.target.files)}
             className="hidden"
@@ -208,9 +208,7 @@ export function MemoryEditSheet({ memory, onClose, onSave }: MemoryEditSheetProp
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 px-4 py-3 text-sm text-brand-700 hover:bg-brand-50 disabled:opacity-60"
           >
             <UploadIcon size={16} />
-            {uploading
-              ? "Uploading…"
-              : `Add ${memory.type === "video" ? "video" : "photos"}`}
+            {uploading ? "Uploading…" : "Add photos & videos"}
           </button>
         </div>
       )}
