@@ -42,8 +42,8 @@ export async function GET(
       ...(obj.contentLength
         ? { "Content-Length": String(obj.contentLength) }
         : {}),
-      // Private: only the owner's browser may cache it.
-      "Cache-Control": "private, max-age=86400",
+      // Private and immutable: keys are UUIDs, content never changes.
+      "Cache-Control": "private, max-age=31536000, immutable",
     },
   });
 }

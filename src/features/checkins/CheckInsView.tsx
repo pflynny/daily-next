@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
-import { formatLongDate, todayKey } from "@/lib/utils/date";
+import { addDaysKey, formatLongDate, todayKey } from "@/lib/utils/date";
 import { CheckIcon, ChevronDown, MoonIcon, PencilIcon, StarIcon, SunIcon } from "@/shared/ui/icons";
 import { YearPicker } from "@/shared/ui/YearPicker";
 import { useCheckIns } from "./useCheckIns";
@@ -27,6 +27,20 @@ export function CheckInsView() {
     () => history.filter((day) => day.date.startsWith(`${year}-`)),
     [history, year],
   );
+
+  // Consecutive days with any check-in; today doesn't break it before
+  // you've had the chance to check in.
+  const streak = useMemo(() => {
+    const dates = new Set(history.map((d) => d.date));
+    let cursor = todayKey();
+    if (!dates.has(cursor)) cursor = addDaysKey(cursor, -1);
+    let n = 0;
+    while (dates.has(cursor)) {
+      n += 1;
+      cursor = addDaysKey(cursor, -1);
+    }
+    return n;
+  }, [history]);
 
   // Feelings that appear in the selected year, most frequent first.
   const usedFeelings = useMemo(() => {
@@ -57,6 +71,11 @@ export function CheckInsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="CHECK-INS">
+        {streak >= 2 && (
+          <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
+            {streak}-day streak
+          </span>
+        )}
         <YearPicker
           year={year}
           onChange={(y) => {

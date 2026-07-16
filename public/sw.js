@@ -1,5 +1,6 @@
 /* Daily service worker — offline shell + runtime caching. */
 const CACHE = "daily-v1";
+const MEDIA_CACHE = "daily-media-v1";
 const SHELL = [
   "/",
   "/goals",
@@ -22,7 +23,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+        Promise.all(
+        keys
+          .filter((k) => k !== CACHE && k !== MEDIA_CACHE)
+          .map((k) => caches.delete(k)),
+      ),
       ),
   );
   self.clients.claim();
@@ -47,6 +52,23 @@ self.addEventListener("fetch", (event) => {
         .catch(() =>
           caches.match(request).then((r) => r || caches.match("/")),
         ),
+    );
+    return;
+  }
+
+  // Private media: each key is immutable (uuid), so cache-first forever.
+  if (url.pathname.startsWith("/api/media/")) {
+    event.respondWith(
+      caches.open(MEDIA_CACHE).then((cache) =>
+        cache.match(request).then(
+          (cached) =>
+            cached ||
+            fetch(request).then((res) => {
+              if (res.ok) cache.put(request, res.clone());
+              return res;
+            }),
+        ),
+      ),
     );
     return;
   }

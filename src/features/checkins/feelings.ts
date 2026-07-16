@@ -74,6 +74,7 @@ export const FEELINGS: Feeling[] = [
   down("guilty"),
   down("bitter"),
   down("exhausted"),
+  down("drained"),
   down("embarrassed"),
   down("unwell"),
 ];
@@ -94,6 +95,7 @@ export const PRIMARY_FEELINGS = new Set([
   "stressed",
   "anxious",
   "sad",
+  "drained",
   "overwhelmed",
   "frustrated",
   "low",
