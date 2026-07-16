@@ -41,10 +41,13 @@ export function MemoryCard({
   memory,
   onEdit,
   onDelete,
+  onViewImage,
 }: {
   memory: MemoryView;
   onEdit: (memory: MemoryView) => void;
   onDelete: (memory: MemoryView) => void;
+  /** When provided, photos become tappable to view full-size. */
+  onViewImage?: (url: string) => void;
 }) {
   const Icon = TYPE_ICON[memory.type];
   const cols =
@@ -132,6 +135,24 @@ export function MemoryCard({
                     controls
                     className="w-full rounded-lg border border-line bg-ink/5"
                   />
+                ) : onViewImage ? (
+                  <button
+                    key={m.id}
+                    onClick={() => onViewImage(m.url)}
+                    aria-label="View photo"
+                    className="block w-full"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={m.url}
+                      alt=""
+                      loading="lazy"
+                      className={cn(
+                        "w-full rounded-lg border border-line bg-sand object-cover",
+                        memory.media.length === 1 ? "max-h-96 object-contain" : "aspect-square",
+                      )}
+                    />
+                  </button>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

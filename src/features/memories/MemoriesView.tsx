@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -54,6 +54,14 @@ export function MemoriesView() {
   const [editMemory, setEditMemory] = useState<MemoryView | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MemoryView | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setLightbox(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   const yearItems = byYear.find(([y]) => y === year)?.[1] ?? [];
   const items = yearItems.filter((m) => matchesFilter(m, filter));
@@ -139,7 +147,14 @@ export function MemoriesView() {
             </button>
           </div>
         ) : (
-          <div className="mx-auto max-w-2xl px-4 py-4">
+          <div
+            className={cn(
+              "mx-auto px-4 py-4",
+              // wide canvas for the two-column timeline; narrower reading
+              // measure for the condensed all-history list
+              view === "year" ? "max-w-[1400px]" : "max-w-3xl",
+            )}
+          >
             <div className="no-scrollbar mb-5 flex gap-1.5 overflow-x-auto">
               {FILTERS.map((f) => (
                 <button
@@ -194,6 +209,7 @@ export function MemoriesView() {
                                   memory={memory}
                                   onEdit={setEditMemory}
                                   onDelete={setConfirmDelete}
+                                  onViewImage={setLightbox}
                                 />
                               </div>
                             )}
@@ -217,12 +233,28 @@ export function MemoriesView() {
                   items={items}
                   onEdit={setEditMemory}
                   onDelete={setConfirmDelete}
+                  onViewImage={setLightbox}
                 />
               </section>
             )}
           </div>
         )}
       </Screen>
+
+      {lightbox && (
+        <button
+          onClick={() => setLightbox(null)}
+          aria-label="Close photo"
+          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-ink/85 p-4"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt=""
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        </button>
+      )}
 
       <AddMemorySheet
         open={adding}
@@ -301,10 +333,12 @@ function TimelineGrid({
   items,
   onEdit,
   onDelete,
+  onViewImage,
 }: {
   items: MemoryView[];
   onEdit: (m: MemoryView) => void;
   onDelete: (m: MemoryView) => void;
+  onViewImage: (url: string) => void;
 }) {
   // Runs of normal cards flow as two independent staggered columns (no
   // paired row heights, so no gaps); full-width cards break the run.
@@ -326,7 +360,7 @@ function TimelineGrid({
         {items.map((m) => (
           <li key={m.id} className="relative mb-5 ml-6">
             <TimelineMarker m={m} pos="mobile" />
-            <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+            <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
           </li>
         ))}
       </ol>
@@ -337,7 +371,7 @@ function TimelineGrid({
           seg.kind === "wide" ? (
             <div key={seg.m.id} className="relative mb-5">
               <TimelineMarker m={seg.m} pos="wide" />
-              <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} />
+              <MemoryCard memory={seg.m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
             </div>
           ) : (
             <div key={si} className="mb-5 grid grid-cols-2 gap-x-12">
@@ -347,7 +381,7 @@ function TimelineGrid({
                   .map((m) => (
                     <div key={m.id} className="relative">
                       <TimelineMarker m={m} pos="left" />
-                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
                     </div>
                   ))}
               </div>
@@ -357,7 +391,7 @@ function TimelineGrid({
                   .map((m) => (
                     <div key={m.id} className="relative">
                       <TimelineMarker m={m} pos="right" />
-                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} />
+                      <MemoryCard memory={m} onEdit={onEdit} onDelete={onDelete} onViewImage={onViewImage} />
                     </div>
                   ))}
               </div>
