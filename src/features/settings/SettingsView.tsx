@@ -400,7 +400,7 @@ export function SettingsView() {
             )}
           </Section>
 
-          <p className="pb-6 text-center text-xs text-faint">Daily · v1</p>
+          <p className="pb-6 text-center text-xs text-faint">Daily · v3</p>
         </div>
       </Screen>
     </div>
