@@ -66,12 +66,12 @@ export async function GET(
       ? {
           title: "Morning check-in",
           body: "How are you feeling today?",
-          url: "/check-ins",
+          url: "/check-ins?focus=morning",
         }
       : {
           title: "Evening check-in",
           body: "How was today? Three good things…",
-          url: "/check-ins",
+          url: "/check-ins?focus=evening",
         },
   );
 

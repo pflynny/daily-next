@@ -22,11 +22,33 @@ export function CheckInsView() {
   const [filter, setFilter] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [editDate, setEditDate] = useState<string | null>(null);
+  // Deep link from a reminder notification: /check-ins?focus=morning|evening
+  const [focus, setFocus] = useState<CheckInKind | null>(null);
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("focus");
+    if (f === "morning" || f === "evening") setFocus(f);
+  }, []);
 
   const yearHistory = useMemo(
     () => history.filter((day) => day.date.startsWith(`${year}-`)),
     [history, year],
   );
+
+  // Last 7 days for the dot strip (oldest → today).
+  const last7 = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = addDaysKey(todayKey(), -(6 - i));
+      const entry = history.find((d) => d.date === date);
+      return {
+        date,
+        label: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+          weekday: "narrow",
+        }),
+        morning: !!entry?.morning,
+        evening: !!entry?.evening,
+      };
+    });
+  }, [history]);
 
   // Consecutive days with any check-in; today doesn't break it before
   // you've had the chance to check in.
@@ -89,8 +111,57 @@ export function CheckInsView() {
         <div className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
           {year === currentYear && (
             <>
-              <DayCard date={today} kind="morning" />
-              <DayCard date={today} kind="evening" />
+              {/* Last-7-days dot strip — tap a past day to backfill it */}
+              <div className="flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-2.5">
+                {last7.map((d) => {
+                  const isToday = d.date === today;
+                  return (
+                    <button
+                      key={d.date}
+                      onClick={() => !isToday && setEditDate(d.date)}
+                      aria-label={`${formatLongDate(d.date)}${isToday ? " (today)" : ""}`}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-lg px-2 py-1",
+                        !isToday && "hover:bg-sand",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-[10px] font-semibold uppercase",
+                          isToday ? "text-brand-600" : "text-faint",
+                        )}
+                      >
+                        {d.label}
+                      </span>
+                      <span className="flex gap-1">
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            d.morning ? "bg-brand-500" : "bg-line",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            d.evening ? "bg-brand-800" : "bg-line",
+                          )}
+                        />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <DayCard
+                date={today}
+                kind="morning"
+                startExpanded={focus === "morning"}
+              />
+              <DayCard
+                date={today}
+                kind="evening"
+                startExpanded={focus === "evening"}
+              />
             </>
           )}
 
