@@ -251,7 +251,7 @@ export function ListsPanel() {
             </div>
           </div>
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             <ActiveDragChip kind="listItem" className="text-xs" />
           </DragOverlay>
         </>

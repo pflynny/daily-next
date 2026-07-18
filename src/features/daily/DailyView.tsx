@@ -348,7 +348,7 @@ export function DailyView() {
           </div>
         )}
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           <ActiveDragChip kind="task" className="text-sm" />
         </DragOverlay>
 
