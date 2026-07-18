@@ -21,6 +21,7 @@ export function WrappedView() {
   const w = useWrapped(year);
   const shotRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [quotesOpen, setQuotesOpen] = useState(false);
 
   const monthlyMax = Math.max(1, ...w.tasks.monthly);
   const hasData =
@@ -314,6 +315,28 @@ export function WrappedView() {
               <p className="mt-3 text-xs uppercase tracking-wide text-brand-200">
                 {w.quotes.featured.author} · one of {w.quotes.count} you saved
               </p>
+              {w.quotes.count > 1 && (
+                <button
+                  onClick={() => setQuotesOpen((o) => !o)}
+                  className="mt-5 rounded-full border border-brand-700 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-200 hover:bg-brand-800 hover:text-brand-50"
+                >
+                  {quotesOpen ? "Hide quotes" : `Show all ${w.quotes.count} quotes`}
+                </button>
+              )}
+              {quotesOpen && (
+                <ul className="mt-6 space-y-5 border-t border-brand-800 pt-6 text-left">
+                  {w.quotes.all.map((q, i) => (
+                    <li key={i}>
+                      <p className="font-serif text-sm italic leading-snug">
+                        “{q.text}”
+                      </p>
+                      <p className="mt-1 text-[10px] uppercase tracking-wide text-brand-300">
+                        {q.author}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
         </div>
