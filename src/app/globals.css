@@ -47,6 +47,8 @@
   html {
     -webkit-text-size-adjust: 100%;
     height: 100%;
+    /* No double-tap-to-zoom; taps fire immediately (app-like feel). */
+    touch-action: manipulation;
   }
   body {
     background: var(--color-paper);

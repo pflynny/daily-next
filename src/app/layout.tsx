@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./sw-register";
+import { PinchZoomGuard } from "./pinch-zoom-guard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,9 @@ export const viewport: Viewport = {
   themeColor: "#22311d",
   width: "device-width",
   initialScale: 1,
+  // App-style UI: accidental pinch/double-tap zoom on iOS was constant.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -58,6 +62,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col antialiased">
         {children}
         <ServiceWorkerRegister />
+        <PinchZoomGuard />
       </body>
     </html>
   );
