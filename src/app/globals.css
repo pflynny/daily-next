@@ -135,13 +135,30 @@
 }
 
 /* Row padding that clears the always-visible action icons on touch devices
-   (where hover-reveal keeps them shown); tighter when they're hover-only. */
+   (grip + ⋯ menu); tighter when they're hover-only. */
 .touch-actions-pad {
-  padding-right: 5.25rem;
+  padding-right: 3.5rem;
 }
 @media (hover: hover) and (pointer: fine) {
   .touch-actions-pad {
     padding-right: 2.5rem;
+  }
+}
+
+/* Swap row actions by pointer type: hover icons for mouse users, a compact
+   grip + ⋯ menu on touch (keeps destructive actions behind a second tap). */
+.fine-pointer-only {
+  display: none;
+}
+.coarse-pointer-only {
+  display: flex;
+}
+@media (hover: hover) and (pointer: fine) {
+  .fine-pointer-only {
+    display: flex;
+  }
+  .coarse-pointer-only {
+    display: none;
   }
 }
 
