@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
-import { CheckIcon, GripIcon, MoreIcon, NoteIcon, TrashIcon, XIcon } from "@/shared/ui/icons";
+import { CheckIcon, GripIcon, MoreIcon, NoteIcon, TrashIcon } from "@/shared/ui/icons";
 import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
 import type { Task } from "@/types";
 
@@ -50,74 +50,45 @@ export function TaskRow({
     else setDraft(task.text);
   }
 
+  // Grip + ⋯ on every device: clean rows, delete behind a second tap.
+  // Desktop reveals them on hover; touch keeps them visible. A task with
+  // notes keeps its ⋯ visible with a green dot as the "has notes" hint.
   const actions = (
     <div className="absolute right-0.5 top-1 flex items-center gap-0.5">
-      {/* Mouse: one-click icons, revealed on hover */}
-      <div className="fine-pointer-only items-center gap-0.5">
+      {sortable && (
         <button
-          onClick={() => onOpenDetail(task)}
-          aria-label="Task details"
-          className={cn(
-            "rounded p-1 transition-colors hover:text-ink",
-            task.notes ? "text-brand-600" : "hover-reveal text-faint",
-          )}
+          {...attributes}
+          {...listeners}
+          aria-label="Drag task"
+          className="hover-reveal cursor-grab touch-none rounded p-1 text-faint hover:text-ink active:cursor-grabbing"
         >
-          <NoteIcon size={15} />
+          <GripIcon size={15} />
         </button>
-        {sortable && (
+      )}
+      <DropdownMenu
+        trigger={
           <button
-            {...attributes}
-            {...listeners}
-            aria-label="Drag task"
-            className="hover-reveal cursor-grab touch-none rounded p-1 text-faint hover:text-ink active:cursor-grabbing"
+            aria-label="Task options"
+            className={cn(
+              "relative rounded p-1 text-faint hover:text-ink",
+              !task.notes && "hover-reveal",
+            )}
           >
-            <GripIcon size={15} />
+            <MoreIcon size={15} />
+            {task.notes && (
+              <span className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-brand-500" />
+            )}
           </button>
-        )}
-        <button
-          onClick={() => onDelete(task)}
-          aria-label="Delete task"
-          className="hover-reveal rounded p-1 text-faint hover:text-danger"
-        >
-          <XIcon size={15} />
-        </button>
-      </div>
-
-      {/* Touch: persistent grip, everything else behind ⋯ so delete
-          can't be fat-fingered (matches list items) */}
-      <div className="coarse-pointer-only items-center gap-0.5">
-        {sortable && (
-          <button
-            {...attributes}
-            {...listeners}
-            aria-label="Drag task"
-            className="cursor-grab touch-none rounded p-1 text-faint active:cursor-grabbing"
-          >
-            <GripIcon size={15} />
-          </button>
-        )}
-        <DropdownMenu
-          trigger={
-            <button
-              aria-label="Task options"
-              className="relative rounded p-1 text-faint"
-            >
-              <MoreIcon size={15} />
-              {task.notes && (
-                <span className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-brand-500" />
-              )}
-            </button>
-          }
-        >
-          <DropdownItem onClick={() => onOpenDetail(task)}>
-            <NoteIcon size={13} /> {task.notes ? "Edit notes" : "Add notes"}
-          </DropdownItem>
-          <DropdownSeparator />
-          <DropdownItem danger onClick={() => onDelete(task)}>
-            <TrashIcon size={13} /> Delete
-          </DropdownItem>
-        </DropdownMenu>
-      </div>
+        }
+      >
+        <DropdownItem onClick={() => onOpenDetail(task)}>
+          <NoteIcon size={13} /> {task.notes ? "Edit notes" : "Add notes"}
+        </DropdownItem>
+        <DropdownSeparator />
+        <DropdownItem danger onClick={() => onDelete(task)}>
+          <TrashIcon size={13} /> Delete
+        </DropdownItem>
+      </DropdownMenu>
     </div>
   );
 
@@ -127,7 +98,7 @@ export function TaskRow({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "touch-actions-pad group relative py-2 pl-6",
+          "touch-actions-pad group relative py-2 pl-7",
           isDragging && "opacity-50",
         )}
       >
@@ -167,7 +138,7 @@ export function TaskRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "touch-actions-pad group relative py-1.5 pl-6",
+        "touch-actions-pad group relative py-1.5 pl-7",
         isDragging && "opacity-50",
       )}
     >
@@ -175,7 +146,7 @@ export function TaskRow({
         onClick={() => onToggle(task)}
         aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
-          "absolute left-1 top-1.5 flex size-[18px] items-center justify-center rounded-[5px] border transition-colors",
+          "absolute left-1.5 top-[0.45rem] flex size-[18px] items-center justify-center rounded-[5px] border transition-colors",
           task.completed
             ? "border-brand-500 bg-brand-500 text-white"
             : "border-line text-transparent hover:border-brand-400 hover-reveal",

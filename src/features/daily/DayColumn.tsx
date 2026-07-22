@@ -56,7 +56,7 @@ export function DayColumn({
         isToday ? "bg-today" : "bg-paper",
       )}
     >
-      <div className="pl-6 pr-4 pt-5 pb-3">
+      <div className="pl-7 pr-4 pt-5 pb-3">
         <div className="text-[11px] font-medium uppercase tracking-wide text-brand-500/80">
           {label.day} {label.month}, {label.year}
         </div>
@@ -94,7 +94,7 @@ export function DayColumn({
           ))}
         </SortableContext>
 
-        <div className="pl-6 pr-4 py-1.5">
+        <div className="pl-7 pr-4 py-1.5">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
