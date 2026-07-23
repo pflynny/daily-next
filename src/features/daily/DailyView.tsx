@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   rectIntersection,
   useSensor,
@@ -98,8 +99,13 @@ export function DailyView() {
   const toggleLists = () =>
     isDesktop ? setSettings({ showLists: !showLists }) : setListsSheet(true);
 
+  // Mouse + touch sensors instead of PointerSensor: some macOS input
+  // pipelines (trackpad drivers / synthesized drags) deliver mousedown
+  // without any pointerdown, which left PointerSensor drags dead on
+  // desktop while text selection took over.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 6 } }),
   );
 
   const desktopKeys = useMemo(
