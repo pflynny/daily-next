@@ -20,3 +20,8 @@ export function useMediaQuery(query: string): boolean {
 export function useIsDesktop(): boolean {
   return useMediaQuery("(min-width: 768px)");
 }
+
+/** Mouse/trackpad present (matches the CSS used by .hover-reveal). */
+export function useIsFinePointer(): boolean {
+  return useMediaQuery("(hover: hover) and (pointer: fine)");
+}

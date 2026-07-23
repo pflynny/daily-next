@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
 import { CheckIcon, GripIcon, MoreIcon, NoteIcon, TrashIcon } from "@/shared/ui/icons";
 import { DropdownMenu, DropdownItem, DropdownSeparator } from "@/shared/ui/DropdownMenu";
+import { useIsFinePointer } from "@/shared/hooks/useMediaQuery";
 import type { Task } from "@/types";
 
 interface TaskRowProps {
@@ -27,6 +28,7 @@ export function TaskRow({
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
+  const finePointer = useIsFinePointer();
 
   const {
     attributes,
@@ -43,6 +45,11 @@ export function TaskRow({
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
+  // Mouse users drag anywhere on the row (like list items); touch keeps a
+  // dedicated grip because a row-wide touch-action:none would break scrolling.
+  const rowDrag = sortable && finePointer && !editing;
+  const rowDragProps = rowDrag ? { ...attributes, ...listeners } : {};
+
   function commit() {
     setEditing(false);
     const trimmed = draft.trim();
@@ -50,17 +57,17 @@ export function TaskRow({
     else setDraft(task.text);
   }
 
-  // Grip + ⋯ on every device: clean rows, delete behind a second tap.
-  // Desktop reveals them on hover; touch keeps them visible. A task with
-  // notes keeps its ⋯ visible with a green dot as the "has notes" hint.
+  // Clean rows with delete behind a second tap: on touch a grip + ⋯, on
+  // desktop just the hover-revealed ⋯ (the row itself is the drag handle).
+  // A task with notes keeps its ⋯ visible with a green dot as the hint.
   const actions = (
     <div className="absolute right-0.5 top-1 flex items-center gap-0.5">
-      {sortable && (
+      {sortable && !finePointer && (
         <button
           {...attributes}
           {...listeners}
           aria-label="Drag task"
-          className="hover-reveal cursor-grab touch-none rounded p-1 text-faint hover:text-ink active:cursor-grabbing"
+          className="cursor-grab touch-none rounded p-1 text-faint hover:text-ink active:cursor-grabbing"
         >
           <GripIcon size={15} />
         </button>
@@ -97,8 +104,10 @@ export function TaskRow({
       <div
         ref={setNodeRef}
         style={style}
+        {...rowDragProps}
         className={cn(
           "touch-actions-pad group relative py-2 pl-7",
+          rowDrag && "cursor-grab active:cursor-grabbing",
           isDragging && "opacity-50",
         )}
       >
@@ -137,8 +146,10 @@ export function TaskRow({
     <div
       ref={setNodeRef}
       style={style}
+      {...rowDragProps}
       className={cn(
         "touch-actions-pad group relative py-1.5 pl-7",
+        rowDrag && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
     >
