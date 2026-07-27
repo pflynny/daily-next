@@ -253,6 +253,10 @@ export interface AppSettings {
   navMore: string[];
   /** Tab hrefs in display order; tabs not listed follow in default order. */
   navOrder: string[];
+  /** User-added check-in words (also holds renamed built-ins). */
+  customFeelings: { word: string; tone: "up" | "flat" | "down" }[];
+  /** Built-in check-in words the user has removed. */
+  hiddenFeelings: string[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -261,6 +265,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   weekStartsOn: 1,
   navMore: ["/year", "/wrapped", "/notes"],
   navOrder: [],
+  customFeelings: [],
+  hiddenFeelings: [],
 };
 
 export interface Profile {

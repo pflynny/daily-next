@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown } from "@/shared/ui/icons";
-import { FEELINGS, PRIMARY_FEELINGS, type FeelingTone } from "./feelings";
+import { type FeelingTone } from "./feelings";
+import { useFeelings } from "./useFeelings";
 
-const TONE_STYLE: Record<FeelingTone, { on: string; off: string }> = {
+export const TONE_STYLE: Record<FeelingTone, { on: string; off: string }> = {
   up: {
     on: "border-brand-500 bg-brand-500 text-white",
     off: "border-line text-muted hover:border-brand-400 hover:text-ink",
@@ -27,13 +28,14 @@ interface FeelingPickerProps {
 
 export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
   const [expanded, setExpanded] = useState(false);
+  const { feelings, primary } = useFeelings();
   const sel = new Set(selected);
 
   // Always show primary words plus anything already selected.
   const visible = expanded
-    ? FEELINGS
-    : FEELINGS.filter((f) => PRIMARY_FEELINGS.has(f.word) || sel.has(f.word));
-  const hiddenCount = FEELINGS.length - visible.length;
+    ? feelings
+    : feelings.filter((f) => primary.has(f.word) || sel.has(f.word));
+  const hiddenCount = feelings.length - visible.length;
 
   return (
     <div>

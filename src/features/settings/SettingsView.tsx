@@ -11,6 +11,7 @@ import { useLikedQuotes } from "@/features/panel/useLikedQuotes";
 import { RoutinesManager } from "@/features/routines/RoutinesManager";
 import { InstallButton } from "./InstallButton";
 import { RemindersSection } from "./RemindersSection";
+import { FeelingWordsSection } from "./FeelingWordsSection";
 import { orderNavItems } from "@/shared/components/BottomNav";
 import { ChevronUp, ChevronDown } from "@/shared/ui/icons";
 import { Switch } from "@/shared/ui/Switch";
@@ -362,6 +363,11 @@ export function SettingsView() {
           {/* Reminders */}
           <Section title="Check-in reminders">
             <RemindersSection />
+          </Section>
+
+          {/* Check-in vocabulary */}
+          <Section title="Check-in words">
+            <FeelingWordsSection />
           </Section>
 
           {/* Integrations */}

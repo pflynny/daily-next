@@ -9,7 +9,7 @@ import { CheckIcon, ChevronDown, MoonIcon, PencilIcon, StarIcon, SunIcon } from 
 import { YearPicker } from "@/shared/ui/YearPicker";
 import { useCheckIns } from "./useCheckIns";
 import { FeelingPicker } from "./FeelingPicker";
-import { TONE_OF } from "./feelings";
+import { useFeelings } from "./useFeelings";
 import type { CheckIn, CheckInKind } from "@/types";
 
 const PAGE_SIZE = 30;
@@ -421,6 +421,7 @@ function GratitudeInput({
 /* --------------------------- History ------------------------------ */
 
 function FeelingChips({ feelings }: { feelings: string[] }) {
+  const { toneOf } = useFeelings();
   return (
     <span className="flex flex-wrap gap-1">
       {feelings.map((w) => (
@@ -428,9 +429,9 @@ function FeelingChips({ feelings }: { feelings: string[] }) {
           key={w}
           className={cn(
             "rounded-full px-2 py-0.5 text-[11px]",
-            TONE_OF.get(w) === "down"
+            toneOf(w) === "down"
               ? "bg-amber-700/10 text-amber-800"
-              : TONE_OF.get(w) === "flat"
+              : toneOf(w) === "flat"
                 ? "bg-ink/5 text-muted"
                 : "bg-brand-500/10 text-brand-700",
           )}

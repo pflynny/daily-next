@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { YearPicker } from "@/shared/ui/YearPicker";
 import { DownloadIcon } from "@/shared/ui/icons";
 import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
-import { TONE_OF } from "@/features/checkins/feelings";
+import { useFeelings } from "@/features/checkins/useFeelings";
 import { formatLongDate } from "@/lib/utils/date";
 import { useWrapped } from "./useWrapped";
 import type { GarminYearSummary, PeaksYearSummary } from "@/types";
@@ -19,6 +19,7 @@ export function WrappedView() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const w = useWrapped(year);
+  const { toneOf } = useFeelings();
   const shotRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [quotesOpen, setQuotesOpen] = useState(false);
@@ -177,9 +178,9 @@ export function WrappedView() {
                     key={word}
                     className={cn(
                       "rounded-full px-2.5 py-1 text-xs",
-                      TONE_OF.get(word) === "down"
+                      toneOf(word) === "down"
                         ? "bg-amber-700/10 text-amber-800"
-                        : TONE_OF.get(word) === "flat"
+                        : toneOf(word) === "flat"
                           ? "bg-ink/5 text-muted"
                           : "bg-brand-500/10 text-brand-700",
                     )}
