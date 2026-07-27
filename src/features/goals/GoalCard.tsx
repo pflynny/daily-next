@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import {
   ChevronUp,
@@ -50,6 +50,22 @@ export function GoalCard({
   const [draft, setDraft] = useState(goal.title);
   const isDaily = goal.cadence === "day";
   const pct = Math.min(100, Math.round((stats.current / goal.target) * 100));
+
+  // Streaks in met periods (weeks/months). The current period doesn't
+  // break the streak while it's still in progress and unmet.
+  const periodStreaks = useMemo(() => {
+    let best = 0;
+    let run = 0;
+    for (const h of history) {
+      run = h.met ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+    let i = history.length - 1;
+    if (i >= 0 && !history[i].met) i -= 1;
+    let current = 0;
+    for (; i >= 0 && history[i].met; i -= 1) current += 1;
+    return { current, best };
+  }, [history]);
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
@@ -169,11 +185,7 @@ export function GoalCard({
 
           <div className="mt-4 flex items-end gap-[3px]">
             {history.map((h) => (
-              <div
-                key={h.key}
-                title={`${h.label}: ${h.value}/${goal.target}`}
-                className="flex-1"
-              >
+              <div key={h.key} className="group/period relative flex-1">
                 <div
                   className={cn(
                     "h-7 rounded-[3px]",
@@ -184,12 +196,25 @@ export function GoalCard({
                         : "bg-sand",
                   )}
                 />
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[10px] font-medium text-white shadow-sm group-hover/period:block">
+                  {goal.cadence === "week" ? `w/c ${h.label}` : h.label} ·{" "}
+                  {h.value}/{goal.target}
+                </div>
               </div>
             ))}
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-faint">
             <span>{history[0]?.label}</span>
             <span>{history[history.length - 1]?.label}</span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line/70 pt-2.5 text-[11px] text-muted">
+            <Stat
+              label="Streak"
+              value={`${periodStreaks.current} ${goal.cadence === "week" ? "wk" : "mo"}${periodStreaks.current === 1 ? "" : "s"}`}
+            />
+            <Stat label="Best" value={`${periodStreaks.best}`} />
+            <Stat label="This year" value={`${stats.total}`} />
           </div>
         </>
       )}
