@@ -264,28 +264,49 @@ export function useGoals(year: number = new Date().getFullYear()) {
     [datesFor, periodCount],
   );
 
-  /** All periods in `year` (Jan→Dec) with met/target info. */
+  /** All periods in `year` (Jan→Dec, full year) with met/target info.
+   *  Periods that haven't started yet are flagged `future`. */
   const periodHistory = useCallback(
     (goal: Goal, year: number) => {
-      const out: { label: string; value: number; met: boolean; key: string }[] = [];
+      const out: {
+        label: string;
+        value: number;
+        met: boolean;
+        key: string;
+        future: boolean;
+        /** month (0-11) the period starts in — for the label row */
+        month: number;
+      }[] = [];
       const today = new Date();
       if (goal.cadence === "week") {
         let ref = startOfWeek(new Date(year, 0, 1), weekStartsOn);
         while (ref.getFullYear() <= year) {
-          if (ref > today) break;
           const k = weekKey(ref, weekStartsOn);
           const value = periodCount(goal.id, goal.cadence, ref);
-          out.push({ label: `${ref.getDate()}/${ref.getMonth() + 1}`, value, met: value >= goal.target, key: k });
+          out.push({
+            label: `${ref.getDate()}/${ref.getMonth() + 1}`,
+            value,
+            met: value >= goal.target,
+            key: k,
+            future: ref > today,
+            month: ref.getMonth(),
+          });
           ref = addDays(ref, 7);
           if (ref.getFullYear() > year) break;
         }
       } else {
         for (let m = 0; m < 12; m += 1) {
           const ref = new Date(year, m, 1);
-          if (ref > today) break;
           const k = toDateKey(ref).slice(0, 7);
           const value = periodCount(goal.id, goal.cadence, ref);
-          out.push({ label: ref.toLocaleDateString(undefined, { month: "short" }), value, met: value >= goal.target, key: k });
+          out.push({
+            label: ref.toLocaleDateString(undefined, { month: "short" }),
+            value,
+            met: value >= goal.target,
+            key: k,
+            future: ref > today,
+            month: m,
+          });
         }
       }
       return out;

@@ -17,7 +17,14 @@ interface GoalCardProps {
   year: number;
   stats: GoalStats;
   counts: Map<string, number>;
-  history: { label: string; value: number; met: boolean; key: string }[];
+  history: {
+    label: string;
+    value: number;
+    met: boolean;
+    key: string;
+    future: boolean;
+    month: number;
+  }[];
   isFirst: boolean;
   isLast: boolean;
   onRename: (goal: Goal, title: string) => void;
@@ -51,20 +58,36 @@ export function GoalCard({
   const isDaily = goal.cadence === "day";
   const pct = Math.min(100, Math.round((stats.current / goal.target) * 100));
 
-  // Streaks in met periods (weeks/months). The current period doesn't
-  // break the streak while it's still in progress and unmet.
+  // Streaks in met periods (weeks/months), ignoring periods that haven't
+  // started yet. The current period doesn't break the streak while it's
+  // still in progress and unmet.
   const periodStreaks = useMemo(() => {
+    const past = history.filter((h) => !h.future);
     let best = 0;
     let run = 0;
-    for (const h of history) {
+    for (const h of past) {
       run = h.met ? run + 1 : 0;
       best = Math.max(best, run);
     }
-    let i = history.length - 1;
-    if (i >= 0 && !history[i].met) i -= 1;
+    let i = past.length - 1;
+    if (i >= 0 && !past[i].met) i -= 1;
     let current = 0;
-    for (; i >= 0 && history[i].met; i -= 1) current += 1;
+    for (; i >= 0 && past[i].met; i -= 1) current += 1;
     return { current, best };
+  }, [history]);
+
+  // First period of each month → month initial positioned over the strip.
+  const monthMarks = useMemo(() => {
+    const marks: { idx: number; letter: string }[] = [];
+    let last = -1;
+    history.forEach((h, idx) => {
+      if (h.month !== last) {
+        marks.push({ idx, letter: "JFMAMJJASOND"[h.month] });
+        last = h.month;
+      }
+    });
+    // drop a leading December week carried in from the previous year
+    return marks.filter((m, i) => !(i === 0 && m.letter === "D"));
   }, [history]);
 
   return (
@@ -132,17 +155,17 @@ export function GoalCard({
 
       {isDaily ? (
         <>
-          <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
-            <Stat label="Streak" value={`${stats.currentStreak}`} />
-            <Stat label="Best" value={`${stats.bestStreak}`} />
-            <Stat label="Days" value={`${stats.total}`} />
-            <Stat label="Score" value={`${stats.score}/10`} />
-          </div>
           <DailyHeatmap
             year={year}
             counts={counts}
             onToggleDay={(dk) => onToggleDay(goal.id, dk)}
           />
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line/70 pt-2.5 text-[11px] text-muted">
+            <Stat label="Streak" value={`${stats.currentStreak}`} />
+            <Stat label="Best" value={`${stats.bestStreak}`} />
+            <Stat label="Days" value={`${stats.total}`} />
+            <Stat label="Score" value={`${stats.score}/10`} />
+          </div>
         </>
       ) : (
         <>
@@ -183,29 +206,41 @@ export function GoalCard({
             />
           </div>
 
-          <div className="mt-4 flex items-end gap-[3px]">
+          {/* Month letters, aligned over the first period of each month */}
+          <div className="relative mt-4 h-3.5 text-[10px] font-medium uppercase text-faint">
+            {monthMarks.map((m) => (
+              <span
+                key={m.idx}
+                className="absolute"
+                style={{ left: `${(m.idx / history.length) * 100}%` }}
+              >
+                {m.letter}
+              </span>
+            ))}
+          </div>
+          <div className="mt-1 flex items-end gap-[3px]">
             {history.map((h) => (
               <div key={h.key} className="group/period relative flex-1">
                 <div
                   className={cn(
                     "h-7 rounded-[3px]",
-                    h.met
-                      ? "bg-brand-600"
-                      : h.value > 0
-                        ? "bg-brand-300"
-                        : "bg-sand",
+                    h.future
+                      ? "bg-sand/45"
+                      : h.met
+                        ? "bg-brand-600"
+                        : h.value > 0
+                          ? "bg-brand-300"
+                          : "bg-sand",
                   )}
                 />
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[10px] font-medium text-white shadow-sm group-hover/period:block">
-                  {goal.cadence === "week" ? `w/c ${h.label}` : h.label} ·{" "}
-                  {h.value}/{goal.target}
-                </div>
+                {!h.future && (
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[10px] font-medium text-white shadow-sm group-hover/period:block">
+                    {goal.cadence === "week" ? `w/c ${h.label}` : h.label} ·{" "}
+                    {h.value}/{goal.target}
+                  </div>
+                )}
               </div>
             ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[10px] text-faint">
-            <span>{history[0]?.label}</span>
-            <span>{history[history.length - 1]?.label}</span>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line/70 pt-2.5 text-[11px] text-muted">
