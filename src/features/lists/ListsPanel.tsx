@@ -68,6 +68,13 @@ export function ListsPanel() {
     moveToDay(item, todayKey());
   }
 
+  /** Send a whole list to another tab, with undo. */
+  function moveListTo(listId: string, groupId: string) {
+    const target = groups.find((g) => g.id === groupId);
+    const restore = lists.moveListToGroup(listId, groupId);
+    if (restore && target) toast.undo(`List moved to ${target.title}`, restore);
+  }
+
   function findItem(id: string): ListItem | null {
     for (const list of activeGroup?.lists ?? []) {
       const item = list.items.find((i) => i.id === id);
@@ -216,11 +223,15 @@ export function ListsPanel() {
                 list={list}
                 isFirst={idx === 0}
                 isLast={idx === activeGroup.lists.length - 1}
+                otherTabs={groups
+                  .filter((g) => g.id !== activeGroup.id)
+                  .map((g) => ({ id: g.id, title: g.title }))}
                 onRename={lists.renameList}
                 onDelete={(id) =>
                   setConfirm({ kind: "list", id, label: list.name })
                 }
                 onMove={(id, dir) => lists.moveList(activeGroup.id, id, dir)}
+                onMoveToTab={moveListTo}
                 onAddItem={lists.addItem}
                 onToggleItem={lists.toggleItem}
                 onUpdateItemText={(item, text) =>

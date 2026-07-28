@@ -16,9 +16,12 @@ interface ListColumnProps {
   list: ListView;
   isFirst: boolean;
   isLast: boolean;
+  /** Other tabs this list can be moved to. */
+  otherTabs: { id: string; title: string }[];
   onRename: (list: ListView, name: string) => void;
   onDelete: (listId: string) => void;
   onMove: (listId: string, dir: -1 | 1) => void;
+  onMoveToTab: (listId: string, groupId: string) => void;
   onAddItem: (listId: string, text: string) => void;
   onToggleItem: (item: ListItem) => void;
   onUpdateItemText: (item: ListItem, text: string) => void;
@@ -31,9 +34,11 @@ export function ListColumn({
   list,
   isFirst,
   isLast,
+  otherTabs,
   onRename,
   onDelete,
   onMove,
+  onMoveToTab,
   onAddItem,
   onToggleItem,
   onUpdateItemText,
@@ -92,6 +97,19 @@ export function ListColumn({
           <DropdownItem onClick={() => onMove(list.id, 1)} disabled={isLast}>
             <ChevronRight size={13} /> Move right
           </DropdownItem>
+          {otherTabs.length > 0 && (
+            <>
+              <DropdownSeparator />
+              {otherTabs.map((t) => (
+                <DropdownItem
+                  key={t.id}
+                  onClick={() => onMoveToTab(list.id, t.id)}
+                >
+                  <ChevronRight size={13} /> Move to {t.title}
+                </DropdownItem>
+              ))}
+            </>
+          )}
           <DropdownSeparator />
           <DropdownItem danger onClick={() => onDelete(list.id)}>
             <TrashIcon size={13} /> Delete list

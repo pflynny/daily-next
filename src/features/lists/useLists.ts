@@ -117,6 +117,18 @@ export function useLists() {
     [lists, put],
   );
 
+  /** Move a whole list to another tab (appended at the end). */
+  const moveListToGroup = useCallback(
+    (listId: string, toGroupId: string) => {
+      const list = lists.find((l) => l.id === listId);
+      if (!list || list.groupId === toGroupId) return null;
+      const count = lists.filter((l) => l.groupId === toGroupId).length;
+      put("lists", [{ ...list, groupId: toGroupId, position: count }]);
+      return () => put("lists", [list]);
+    },
+    [lists, put],
+  );
+
   // ---- items ---------------------------------------------------------------
   const itemsOf = useCallback(
     (listId: string) =>
@@ -209,6 +221,7 @@ export function useLists() {
     renameList,
     deleteList,
     moveList,
+    moveListToGroup,
     itemsOf,
     addItem,
     updateItem,
