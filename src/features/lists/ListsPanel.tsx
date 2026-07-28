@@ -23,7 +23,7 @@ import type { ListItem } from "@/types";
 
 export function ListsPanel() {
   const lists = useLists();
-  const { addTask, deleteTask } = useTasks();
+  const { addTask, deleteTask, getDay } = useTasks();
   const toast = useToast();
   const { groups } = lists;
 
@@ -84,17 +84,38 @@ export function ListsPanel() {
   }
 
   // Drags are owned by the DailyView-level DndContext; this monitor picks
-  // up only list-item drags (task drags are handled up there).
+  // up list-item drags plus tasks dropped onto a list (day-to-day task
+  // drags are handled up there).
   useDndMonitor({
     onDragEnd(e: DragEndEvent) {
-      if (e.active.data.current?.type !== "listItem") return;
       const { active, over } = e;
+      const activeType = active.data.current?.type;
+      const overData = over?.data.current as
+        | { type?: string; listId?: string; date?: string }
+        | undefined;
+
+      // Task dropped on a list (or an item in one) → becomes a list item.
+      if (activeType === "task") {
+        const toListId = overData?.listId;
+        const date = active.data.current?.date as string | undefined;
+        if (!toListId || !date) return;
+        const task = getDay(date).all.find((t) => t.id === String(active.id));
+        if (!task) return;
+        const itemId = lists.addItem(toListId, task.text, task.notes);
+        const restoreTask = deleteTask(task.id);
+        const listName =
+          activeGroup?.lists.find((l) => l.id === toListId)?.name ?? "list";
+        toast.undo(`Moved to ${listName}`, () => {
+          restoreTask();
+          if (itemId) lists.deleteItem(itemId);
+        });
+        return;
+      }
+
+      if (activeType !== "listItem") return;
       if (!over || !activeGroup) return;
       const activeId = String(active.id);
       const overId = String(over.id);
-      const overData = over.data.current as
-        | { type?: string; listId?: string; date?: string }
-        | undefined;
 
       // Dropped on a day column (or a task inside one) → becomes a task there.
       if (overData?.date) {

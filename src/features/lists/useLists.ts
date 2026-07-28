@@ -139,21 +139,23 @@ export function useLists() {
   );
 
   const addItem = useCallback(
-    (listId: string, text: string) => {
+    (listId: string, text: string, notes = ""): string | null => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed) return null;
       const count = itemsOf(listId).length;
+      const id = newId();
       put("listItems", [
         {
-          id: newId(),
+          id,
           listId,
           text: trimmed,
           completed: false,
-          notes: "",
+          notes,
           position: count,
           createdAt: new Date().toISOString(),
         },
       ]);
+      return id;
     },
     [itemsOf, put],
   );
