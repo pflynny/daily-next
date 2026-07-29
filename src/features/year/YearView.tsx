@@ -222,6 +222,10 @@ export function YearView() {
           col.updateItem(item, patch);
           setDetailItem((cur) => (cur ? { ...cur, ...patch } : cur));
         }}
+        onTogglePick={(item) => {
+          col.togglePick(item);
+          setDetailItem((cur) => (cur ? { ...cur, pick: !cur.pick } : cur));
+        }}
         onDelete={(item) => {
           const restore = col.deleteItem(item.id);
           toast.undo("Entry deleted", restore);

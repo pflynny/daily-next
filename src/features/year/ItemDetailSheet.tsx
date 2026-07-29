@@ -2,7 +2,8 @@
 
 import { Sheet } from "@/shared/ui/Sheet";
 import { NotesField } from "@/shared/components/NotesField";
-import { TrashIcon } from "@/shared/ui/icons";
+import { StarIcon, TrashIcon } from "@/shared/ui/icons";
+import { cn } from "@/lib/utils/cn";
 import type { CollectionItem, CollectionMediaType } from "@/types";
 
 const MEDIA_TYPES: { value: CollectionMediaType; label: string }[] = [
@@ -17,6 +18,7 @@ interface ItemDetailSheetProps {
   item: CollectionItem | null;
   onClose: () => void;
   onUpdate: (item: CollectionItem, patch: Partial<CollectionItem>) => void;
+  onTogglePick: (item: CollectionItem) => void;
   onDelete: (item: CollectionItem) => void;
 }
 
@@ -24,6 +26,7 @@ export function ItemDetailSheet({
   item,
   onClose,
   onUpdate,
+  onTogglePick,
   onDelete,
 }: ItemDetailSheetProps) {
   if (!item) return null;
@@ -53,6 +56,23 @@ export function ItemDetailSheet({
         </div>
       }
     >
+      <button
+        onClick={() => onTogglePick(item)}
+        aria-pressed={item.pick}
+        className={cn(
+          "mb-4 flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+          item.pick
+            ? "border-brand-500 bg-brand-50 text-brand-800"
+            : "border-line text-muted hover:text-ink",
+        )}
+      >
+        <StarIcon
+          size={13}
+          className={cn(item.pick && "fill-brand-500 text-brand-500")}
+        />
+        Pick of the year
+      </button>
+
       <label className="mb-3 block">
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
           Title

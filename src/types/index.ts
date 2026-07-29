@@ -75,6 +75,8 @@ export interface CollectionItem {
   review: string;
   /** Markdown — passages, quotes, page references. */
   notes: string;
+  /** Pick of the year — at most one per collection. */
+  pick: boolean;
   mediaType: CollectionMediaType;
   coverUrl: string | null; // reserved for future cover-art APIs
   position: number;

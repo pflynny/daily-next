@@ -112,6 +112,7 @@ export function useCollections() {
           rating: null,
           review: "",
           notes: "",
+          pick: false,
           mediaType: "other" as CollectionMediaType,
           coverUrl: null,
           position: count,
@@ -126,6 +127,28 @@ export function useCollections() {
     (item: CollectionItem, patch: Partial<CollectionItem>) =>
       put("collectionItems", [{ ...item, ...patch }]),
     [put],
+  );
+
+  /** Star as pick of the year — starring un-stars any other pick in the
+   *  same collection; starring again un-stars it. */
+  const togglePick = useCallback(
+    (item: CollectionItem) => {
+      const next = !item.pick;
+      const rows: CollectionItem[] = [{ ...item, pick: next }];
+      if (next) {
+        for (const other of collectionItems) {
+          if (
+            other.collectionId === item.collectionId &&
+            other.id !== item.id &&
+            other.pick
+          ) {
+            rows.push({ ...other, pick: false });
+          }
+        }
+      }
+      put("collectionItems", rows);
+    },
+    [collectionItems, put],
   );
 
   const deleteItem = useCallback(
@@ -150,6 +173,7 @@ export function useCollections() {
     moveCollection,
     addItem,
     updateItem,
+    togglePick,
     deleteItem,
   };
 }

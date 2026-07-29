@@ -44,10 +44,13 @@ export function CollectionColumn({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const items =
-    sort === "rating"
+  // Pick of the year floats to the top in either sort (stable sort keeps
+  // the rest in their existing order).
+  const items = [
+    ...(sort === "rating"
       ? [...collection.items].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
-      : collection.items;
+      : collection.items),
+  ].sort((a, b) => Number(b.pick) - Number(a.pick));
 
   async function handleBannerFile(files: FileList | null) {
     if (!files?.[0]) return;
