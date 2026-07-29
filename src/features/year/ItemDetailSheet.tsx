@@ -56,22 +56,32 @@ export function ItemDetailSheet({
         </div>
       }
     >
-      <button
-        onClick={() => onTogglePick(item)}
-        aria-pressed={item.pick}
-        className={cn(
-          "mb-4 flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
-          item.pick
-            ? "border-brand-500 bg-brand-50 text-brand-800"
-            : "border-line text-muted hover:text-ink",
-        )}
-      >
-        <StarIcon
-          size={13}
-          className={cn(item.pick && "fill-brand-500 text-brand-500")}
-        />
-        Pick of the year
-      </button>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => onTogglePick(item)}
+          aria-pressed={item.pick}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+            item.pick
+              ? "border-brand-500 bg-brand-50 text-brand-800"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          <StarIcon
+            size={13}
+            className={cn(item.pick && "fill-brand-500 text-brand-500")}
+          />
+          Pick of the year
+        </button>
+        <span className="shrink-0 text-[11px] text-faint">
+          Added{" "}
+          {new Date(item.createdAt).toLocaleDateString(undefined, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
 
       <label className="mb-3 block">
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
