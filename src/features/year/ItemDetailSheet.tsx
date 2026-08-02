@@ -106,6 +106,20 @@ export function ItemDetailSheet({
         />
       </label>
 
+      <label className="mb-3 block">
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+          When <span className="normal-case text-faint">(optional)</span>
+        </span>
+        <input
+          type="date"
+          value={item.happenedOn ?? ""}
+          onChange={(e) =>
+            onUpdate(item, { happenedOn: e.target.value || null })
+          }
+          className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
+        />
+      </label>
+
       <div className="mb-3 flex gap-3">
         <label className="flex-1">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">

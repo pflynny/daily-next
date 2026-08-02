@@ -48,6 +48,8 @@ export interface WrappedData {
     byType: { label: string; count: number }[];
     topRated: CollectionItem[];
   };
+  /** Entries from any list named like "Achievements", pick first. */
+  achievements: { title: string; pick: boolean; happenedOn: string | null }[];
   memories: {
     count: number;
     photos: MemoryView[];
@@ -158,7 +160,10 @@ export function useWrapped(year: number): WrappedData {
     const items = collectionItems.filter((i) =>
       yearCollectionIds.has(i.collectionId),
     );
+    // Achievement lists get their own Wrapped section, so keep them out
+    // of the read/watched tallies.
     const byType = yearCollections
+      .filter((c) => !/achieve/i.test(c.name))
       .map((c) => ({
         label: c.name,
         count: items.filter((i) => i.collectionId === c.id).length,
@@ -169,6 +174,20 @@ export function useWrapped(year: number): WrappedData {
       .filter((i) => typeof i.rating === "number")
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
       .slice(0, 5);
+
+    const achievementListIds = new Set(
+      yearCollections
+        .filter((c) => /achieve/i.test(c.name))
+        .map((c) => c.id),
+    );
+    const achievements = items
+      .filter((i) => achievementListIds.has(i.collectionId))
+      .sort((a, b) =>
+        a.pick !== b.pick
+          ? Number(b.pick) - Number(a.pick)
+          : (a.happenedOn ?? a.createdAt).localeCompare(b.happenedOn ?? b.createdAt),
+      )
+      .map((i) => ({ title: i.title, pick: i.pick, happenedOn: i.happenedOn }));
 
     // ---- memories ----
     const timeline = buildMemories(memories, memoryMedia);
@@ -235,6 +254,7 @@ export function useWrapped(year: number): WrappedData {
         topGoal,
       },
       collection: { total: items.length, byType, topRated },
+      achievements,
       memories: { count: yearMemories.length, photos },
       quotes: {
         count: yearQuotes.length,

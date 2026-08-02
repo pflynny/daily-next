@@ -229,6 +229,33 @@ export function WrappedView() {
             </section>
           )}
 
+          {/* 4b — Achievements */}
+          {w.achievements.length > 0 && (
+            <section className="animate-fade-rise rounded-3xl border border-line bg-surface p-6">
+              <SectionLabel>What you achieved</SectionLabel>
+              <ul className="space-y-2">
+                {w.achievements.map((a, i) => (
+                  <li key={i} className="flex items-start justify-between gap-3 text-sm">
+                    <span className="min-w-0 text-ink">
+                      {a.pick && <span className="mr-1.5">★</span>}
+                      {a.title}
+                      {a.pick && (
+                        <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                          Pick of the year
+                        </span>
+                      )}
+                    </span>
+                    {a.happenedOn && (
+                      <span className="shrink-0 text-xs text-faint">
+                        {formatLongDate(a.happenedOn)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* 5 — Goals */}
           {w.goals.checkIns > 0 && (
             <section className="animate-fade-rise rounded-3xl bg-brand-700 p-6 text-brand-50">

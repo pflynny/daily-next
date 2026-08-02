@@ -36,6 +36,14 @@ export function CollectionItemRow({
         )}
       </span>
       <span className="flex shrink-0 items-center gap-1.5">
+        {item.happenedOn && (
+          <span className="text-[11px] text-faint">
+            {new Date(item.happenedOn + "T00:00:00").toLocaleDateString(
+              undefined,
+              { day: "numeric", month: "short" },
+            )}
+          </span>
+        )}
         {item.notes.trim() && (
           <NoteIcon size={13} className="text-brand-500" />
         )}
