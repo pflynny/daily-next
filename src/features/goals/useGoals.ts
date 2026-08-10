@@ -273,6 +273,8 @@ export function useGoals(year: number = new Date().getFullYear()) {
         value: number;
         met: boolean;
         key: string;
+        /** first day of the period (YYYY-MM-DD) — backfill target */
+        startKey: string;
         future: boolean;
         /** month (0-11) the period starts in — for the label row */
         month: number;
@@ -288,6 +290,7 @@ export function useGoals(year: number = new Date().getFullYear()) {
             value,
             met: value >= goal.target,
             key: k,
+            startKey: toDateKey(ref),
             future: ref > today,
             month: ref.getMonth(),
           });
@@ -304,6 +307,7 @@ export function useGoals(year: number = new Date().getFullYear()) {
             value,
             met: value >= goal.target,
             key: k,
+            startKey: toDateKey(ref),
             future: ref > today,
             month: m,
           });
@@ -312,6 +316,31 @@ export function useGoals(year: number = new Date().getFullYear()) {
       return out;
     },
     [periodCount, weekStartsOn],
+  );
+
+  /** Add/remove a tick in an arbitrary period (for backfilling past weeks
+   *  or months). Adds land on the period's first day; removals find the
+   *  latest day in the period that has activity. */
+  const tickPeriod = useCallback(
+    (goal: Goal, startKey: string, delta: 1 | -1) => {
+      if (delta === 1) {
+        tick(goal.id, 1, startKey);
+        return;
+      }
+      const entries = datesFor(goal.id);
+      const inPeriod = (dk: string): boolean => {
+        if (goal.cadence === "month") return dk.startsWith(startKey.slice(0, 7));
+        const start = fromDateKey(startKey);
+        const end = addDays(start, 6);
+        return dk >= startKey && dk <= toDateKey(end);
+      };
+      const target = [...entries.keys()]
+        .filter((dk) => inPeriod(dk) && (entries.get(dk) ?? 0) > 0)
+        .sort()
+        .pop();
+      if (target) tick(goal.id, -1, target);
+    },
+    [datesFor, tick],
   );
 
   return {
@@ -328,5 +357,6 @@ export function useGoals(year: number = new Date().getFullYear()) {
     tick,
     statsFor,
     periodHistory,
+    tickPeriod,
   };
 }

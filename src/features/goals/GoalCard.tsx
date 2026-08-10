@@ -22,6 +22,7 @@ interface GoalCardProps {
     value: number;
     met: boolean;
     key: string;
+    startKey: string;
     future: boolean;
     month: number;
   }[];
@@ -30,6 +31,7 @@ interface GoalCardProps {
   onRename: (goal: Goal, title: string) => void;
   onToggleDay: (goalId: string, dateKey: string) => void;
   onTick: (goalId: string, delta: 1 | -1) => void;
+  onTickPeriod: (startKey: string, delta: 1 | -1) => void;
   onMove: (goalId: string, dir: -1 | 1) => void;
   onEdit: (goal: Goal) => void;
 }
@@ -50,11 +52,14 @@ export function GoalCard({
   onRename,
   onToggleDay,
   onTick,
+  onTickPeriod,
   onMove,
   onEdit,
 }: GoalCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(goal.title);
+  /** Index of the history block whose backfill stepper is open. */
+  const [openPeriod, setOpenPeriod] = useState<number | null>(null);
   const isDaily = goal.cadence === "day";
   const pct = Math.min(100, Math.round((stats.current / goal.target) * 100));
 
@@ -219,11 +224,16 @@ export function GoalCard({
             ))}
           </div>
           <div className="mt-1 flex items-end gap-[3px]">
-            {history.map((h) => (
+            {history.map((h, idx) => (
               <div key={h.key} className="group/period relative flex-1">
-                <div
+                <button
+                  disabled={h.future}
+                  onClick={() =>
+                    setOpenPeriod((cur) => (cur === idx ? null : idx))
+                  }
+                  aria-label={`${goal.cadence === "week" ? "Week of " : ""}${h.label}: ${h.value}/${goal.target}`}
                   className={cn(
-                    "h-7 rounded-[3px]",
+                    "block h-7 w-full rounded-[3px]",
                     h.future
                       ? "bg-sand/45"
                       : h.met
@@ -231,13 +241,50 @@ export function GoalCard({
                         : h.value > 0
                           ? "bg-brand-300"
                           : "bg-sand",
+                    !h.future && "hover:ring-1 hover:ring-brand-400",
                   )}
                 />
-                {!h.future && (
+                {!h.future && openPeriod !== idx && (
                   <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[10px] font-medium text-white shadow-sm group-hover/period:block">
                     {goal.cadence === "week" ? `w/c ${h.label}` : h.label} ·{" "}
                     {h.value}/{goal.target}
                   </div>
+                )}
+                {openPeriod === idx && (
+                  <>
+                    {/* click-away layer */}
+                    <button
+                      aria-label="Close"
+                      onClick={() => setOpenPeriod(null)}
+                      className="fixed inset-0 z-10 cursor-default"
+                    />
+                    <div className="absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-xl border border-line bg-surface p-2 shadow-lg">
+                      <div className="mb-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {goal.cadence === "week" ? `w/c ${h.label}` : h.label}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onTickPeriod(h.startKey, -1)}
+                          disabled={h.value <= 0}
+                          aria-label="Remove one"
+                          className="flex size-7 items-center justify-center rounded-full border border-line text-muted hover:text-ink disabled:opacity-30"
+                        >
+                          <span className="leading-none">−</span>
+                        </button>
+                        <span className="min-w-8 text-center font-mono text-sm font-bold text-ink">
+                          {h.value}
+                          <span className="text-muted">/{goal.target}</span>
+                        </span>
+                        <button
+                          onClick={() => onTickPeriod(h.startKey, 1)}
+                          aria-label="Add one"
+                          className="flex size-7 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-700"
+                        >
+                          <PlusIcon size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             ))}

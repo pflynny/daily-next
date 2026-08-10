@@ -81,6 +81,9 @@ export function GoalsView() {
                 onRename={(g, title) => goals.updateGoal(g, { title })}
                 onToggleDay={goals.toggleDay}
                 onTick={goals.tick}
+                onTickPeriod={(startKey, delta) =>
+                  goals.tickPeriod(goal, startKey, delta)
+                }
                 onMove={goals.moveGoal}
                 onEdit={(g) => {
                   setEditGoal(g);
