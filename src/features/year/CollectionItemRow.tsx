@@ -34,10 +34,8 @@ export function CollectionItemRow({
             {item.creator}
           </span>
         )}
-      </span>
-      <span className="flex shrink-0 items-center gap-1.5">
         {(item.startedOn || item.happenedOn) && (
-          <span className="text-[11px] text-faint">
+          <span className="mt-0.5 block text-[11px] text-faint">
             {[item.startedOn, item.happenedOn]
               .filter(Boolean)
               .map((d) =>
@@ -49,6 +47,8 @@ export function CollectionItemRow({
               .join(" – ")}
           </span>
         )}
+      </span>
+      <span className="flex shrink-0 items-center gap-1.5">
         {item.notes.trim() && (
           <NoteIcon size={13} className="text-brand-500" />
         )}
