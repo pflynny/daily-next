@@ -63,7 +63,13 @@ export interface ListGroupView extends ListGroup {
 }
 
 /* -------------------------- Collections --------------------------- */
-export type CollectionMediaType = "book" | "movie" | "tv" | "music" | "other";
+export type CollectionMediaType =
+  | "book"
+  | "movie"
+  | "tv"
+  | "music"
+  | "videogame"
+  | "other";
 
 export interface CollectionItem {
   id: string;
@@ -77,7 +83,9 @@ export interface CollectionItem {
   notes: string;
   /** Pick of the year — at most one per collection. */
   pick: boolean;
-  /** Optional date it happened (YYYY-MM-DD) — achieved on, finished on… */
+  /** Optional start date (YYYY-MM-DD) — started reading, kicked off… */
+  startedOn: string | null;
+  /** Optional date it happened / finished (YYYY-MM-DD). */
   happenedOn: string | null;
   mediaType: CollectionMediaType;
   coverUrl: string | null; // reserved for future cover-art APIs

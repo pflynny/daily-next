@@ -36,12 +36,17 @@ export function CollectionItemRow({
         )}
       </span>
       <span className="flex shrink-0 items-center gap-1.5">
-        {item.happenedOn && (
+        {(item.startedOn || item.happenedOn) && (
           <span className="text-[11px] text-faint">
-            {new Date(item.happenedOn + "T00:00:00").toLocaleDateString(
-              undefined,
-              { day: "numeric", month: "short" },
-            )}
+            {[item.startedOn, item.happenedOn]
+              .filter(Boolean)
+              .map((d) =>
+                new Date(d + "T00:00:00").toLocaleDateString(undefined, {
+                  day: "numeric",
+                  month: "short",
+                }),
+              )
+              .join(" – ")}
           </span>
         )}
         {item.notes.trim() && (

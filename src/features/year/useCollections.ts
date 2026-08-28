@@ -113,6 +113,7 @@ export function useCollections() {
           review: "",
           notes: "",
           pick: false,
+          startedOn: null,
           happenedOn: null,
           mediaType: "other" as CollectionMediaType,
           coverUrl: null,
