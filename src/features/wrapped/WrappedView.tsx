@@ -425,12 +425,14 @@ function FitnessSection({
 
   const bigs: { value: string | number; label: string }[] = [];
   if (peaks) bigs.push({ value: peaks.total, label: "Summits bagged" });
-  if (acts && acts.run.km >= 1)
-    bigs.push({ value: fmtInt(acts.run.km), label: "Km run" });
   if (acts && acts.ride.km >= 1)
     bigs.push({ value: fmtInt(acts.ride.km), label: "Km ridden" });
   if (acts && acts.walkHike.km >= 1)
     bigs.push({ value: fmtInt(acts.walkHike.km), label: "Km walked" });
+  if (acts && acts.run.km >= 1)
+    bigs.push({ value: fmtInt(acts.run.km), label: "Km run" });
+  if (acts?.workout?.count)
+    bigs.push({ value: acts.workout.count, label: "Workouts" });
   if (garmin?.steps)
     bigs.push({ value: compactSteps(garmin.steps.total), label: "Steps" });
   if (garmin?.sleep)

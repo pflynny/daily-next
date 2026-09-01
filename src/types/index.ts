@@ -237,6 +237,8 @@ export interface GarminYearSummary {
     run: FitnessActivityTotals;
     ride: FitnessActivityTotals;
     walkHike: FitnessActivityTotals;
+    /** Gym sessions (weights / HIIT) — absent in older imports. */
+    workout?: FitnessActivityTotals;
   } | null;
 }
 
