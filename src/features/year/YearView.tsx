@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDeepLink } from "@/shared/hooks/useDeepLink";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -29,6 +30,15 @@ export function YearView() {
   const [confirmCollection, setConfirmCollection] =
     useState<CollectionView | null>(null);
   const [newCollection, setNewCollection] = useState("");
+
+  // /year?year=2025 (0 = all time) from search
+  useDeepLink((p) => {
+    const y = p.get("year");
+    if (y !== null && /^\d+$/.test(y)) {
+      setSelectedYear(Number(y));
+      setView("lists");
+    }
+  });
 
   const yearTabs = Array.from(
     new Set([...col.years, currentYear, selectedYear].filter((y) => y > 0)),

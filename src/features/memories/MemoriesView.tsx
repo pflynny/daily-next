@@ -10,6 +10,7 @@ import {
 } from "react";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
+import { useDeepLink } from "@/shared/hooks/useDeepLink";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { useToast } from "@/shared/ui/ToastProvider";
 import {
@@ -56,6 +57,14 @@ export function MemoriesView() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [view, setView] = useState<"year" | "all">("year");
+  // /memories?year=2024 from search
+  useDeepLink((p) => {
+    const y = p.get("year");
+    if (y && /^\d{4}$/.test(y)) {
+      setYear(Number(y));
+      setView("year");
+    }
+  });
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [editMemory, setEditMemory] = useState<MemoryView | null>(null);

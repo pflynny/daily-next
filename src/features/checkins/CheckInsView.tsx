@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDeepLink } from "@/shared/hooks/useDeepLink";
 import { PageHeader } from "@/shared/components/PageHeader";
+import { PatternsPanel } from "./PatternsPanel";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
 import { addDaysKey, formatLongDate, todayKey } from "@/lib/utils/date";
@@ -22,12 +24,20 @@ export function CheckInsView() {
   const [filter, setFilter] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [editDate, setEditDate] = useState<string | null>(null);
-  // Deep link from a reminder notification: /check-ins?focus=morning|evening
+  const [view, setView] = useState<"log" | "patterns">("log");
+  // Deep links: ?focus=morning|evening from a reminder, ?date=YYYY-MM-DD
+  // from search (opens that day for viewing/editing).
   const [focus, setFocus] = useState<CheckInKind | null>(null);
-  useEffect(() => {
-    const f = new URLSearchParams(window.location.search).get("focus");
+  useDeepLink((p) => {
+    const f = p.get("focus");
     if (f === "morning" || f === "evening") setFocus(f);
-  }, []);
+    const d = p.get("date");
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setYear(Number(d.slice(0, 4)));
+      setEditDate(d);
+      setView("log");
+    }
+  });
 
   const yearHistory = useMemo(
     () => history.filter((day) => day.date.startsWith(`${year}-`)),
@@ -93,11 +103,31 @@ export function CheckInsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="CHECK-INS">
-        {streak >= 2 && (
+        {streak >= 2 && view === "log" && (
           <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
             {streak}-day streak
           </span>
         )}
+        <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          <button
+            onClick={() => setView("log")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "log" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            Log
+          </button>
+          <button
+            onClick={() => setView("patterns")}
+            className={cn(
+              "rounded-md px-2 py-1",
+              view === "patterns" ? "bg-brand-700 text-white" : "text-muted hover:text-ink",
+            )}
+          >
+            Patterns
+          </button>
+        </div>
         <YearPicker
           year={year}
           onChange={(y) => {
@@ -108,6 +138,9 @@ export function CheckInsView() {
         />
       </PageHeader>
       <Screen>
+        {view === "patterns" ? (
+          <PatternsPanel year={year} />
+        ) : (
         <div className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
           {year === currentYear && (
             <>
@@ -250,6 +283,7 @@ export function CheckInsView() {
             )}
           </section>
         </div>
+        )}
       </Screen>
     </div>
   );

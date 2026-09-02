@@ -5,15 +5,20 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { formatLongDate } from "@/lib/utils/date";
 import { useAppData } from "@/state/AppDataProvider";
+import { NAVIGATE_EVENT } from "@/shared/hooks/useDeepLink";
 import {
   CalendarIcon,
   ImagesIcon,
   ListIcon,
+  NoteIcon,
   SearchIcon,
   StackIcon,
+  SunIcon,
 } from "@/shared/ui/icons";
 
 export const OPEN_SEARCH_EVENT = "daily:open-search";
+
+const PER_KIND = 6;
 
 interface Result {
   id: string;
@@ -22,6 +27,17 @@ interface Result {
   sub: string;
   href: string;
   Icon: typeof CalendarIcon;
+}
+
+/** ~60 chars of context around the first match, or null if no match. */
+function snippet(text: string, q: string): string | null {
+  const lower = text.toLowerCase();
+  const at = lower.indexOf(q);
+  if (at < 0) return null;
+  const start = Math.max(0, at - 28);
+  const end = Math.min(text.length, at + q.length + 32);
+  const body = text.slice(start, end).replace(/\s+/g, " ").trim();
+  return `${start > 0 ? "…" : ""}${body}${end < text.length ? "…" : ""}`;
 }
 
 export function CommandPalette() {
@@ -64,9 +80,9 @@ export function CommandPalette() {
     return m;
   }, [data.lists]);
 
-  const collectionYears = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of data.collections) m.set(c.id, c.year);
+  const collectionMeta = useMemo(() => {
+    const m = new Map<string, { year: number; name: string }>();
+    for (const c of data.collections) m.set(c.id, { year: c.year, name: c.name });
     return m;
   }, [data.collections]);
 
@@ -74,60 +90,114 @@ export function CommandPalette() {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const out: Result[] = [];
+    const count = (kind: string) => out.filter((r) => r.kind === kind).length;
 
     for (const t of data.tasks) {
-      if (t.isLabel || !t.text.toLowerCase().includes(q)) continue;
+      if (t.isLabel || count("Task") >= PER_KIND) continue;
+      const inText = t.text.toLowerCase().includes(q);
+      const inNotes = !inText && t.notes ? snippet(t.notes, q) : null;
+      if (!inText && !inNotes) continue;
       out.push({
         id: t.id,
         kind: "Task",
         label: t.text,
-        sub: formatLongDate(t.date),
+        sub: inNotes ? `${formatLongDate(t.date)} · ${inNotes}` : formatLongDate(t.date),
         href: "/",
         Icon: CalendarIcon,
       });
-      if (out.filter((r) => r.kind === "Task").length >= 6) break;
     }
+
     for (const i of data.listItems) {
-      if (!i.text.toLowerCase().includes(q)) continue;
+      if (count("List") >= PER_KIND) break;
+      const inText = i.text.toLowerCase().includes(q);
+      const inNotes = !inText && i.notes ? snippet(i.notes, q) : null;
+      if (!inText && !inNotes) continue;
+      const list = listNames.get(i.listId) ?? "Brain dump";
       out.push({
         id: i.id,
         kind: "List",
         label: i.text,
-        sub: listNames.get(i.listId) ?? "Brain dump",
+        sub: inNotes ? `${list} · ${inNotes}` : list,
         href: "/",
         Icon: ListIcon,
       });
-      if (out.filter((r) => r.kind === "List").length >= 6) break;
     }
+
+    for (const n of data.notes) {
+      if (count("Note") >= PER_KIND) break;
+      const inTitle = n.title.toLowerCase().includes(q);
+      const inBody = !inTitle ? snippet(n.body, q) : null;
+      if (!inTitle && !inBody) continue;
+      out.push({
+        id: n.id,
+        kind: "Note",
+        label: n.title || "Untitled note",
+        sub: inBody ?? snippet(n.body, n.body.slice(0, 1).toLowerCase()) ?? "",
+        href: `/notes?note=${n.id}`,
+        Icon: NoteIcon,
+      });
+    }
+
     for (const m of data.memories) {
-      const hay = `${m.title} ${m.body} ${m.quoteAuthor}`.toLowerCase();
-      if (!hay.includes(q)) continue;
+      if (count("Memory") >= PER_KIND) break;
+      const hay = `${m.title} ${m.body} ${m.quoteAuthor}`;
+      const s = snippet(hay, q);
+      if (!s) continue;
       out.push({
         id: m.id,
         kind: "Memory",
         label: m.title || m.body || m.quoteAuthor || "Memory",
-        sub: formatLongDate(m.occurredOn),
-        href: "/memories",
+        sub: `${formatLongDate(m.occurredOn)}${m.title && s ? ` · ${s}` : ""}`,
+        href: `/memories?year=${m.occurredOn.slice(0, 4)}`,
         Icon: ImagesIcon,
       });
-      if (out.filter((r) => r.kind === "Memory").length >= 6) break;
     }
+
     for (const c of data.collectionItems) {
-      const hay = `${c.title} ${c.creator}`.toLowerCase();
-      if (!hay.includes(q)) continue;
-      const year = collectionYears.get(c.collectionId);
+      if (count("Year") >= PER_KIND) break;
+      const inHead = `${c.title} ${c.creator}`.toLowerCase().includes(q);
+      const inNotes = !inHead ? snippet(`${c.review} ${c.notes}`, q) : null;
+      if (!inHead && !inNotes) continue;
+      const meta = collectionMeta.get(c.collectionId);
+      const where = meta ? (meta.year === 0 ? `${meta.name} · All time` : `${meta.name} ${meta.year}`) : "";
       out.push({
         id: c.id,
         kind: "Year",
         label: c.title,
-        sub: [c.creator, year].filter(Boolean).join(" · "),
-        href: "/year",
+        sub: [c.creator, where, inNotes].filter(Boolean).join(" · "),
+        href: `/year?year=${meta?.year ?? ""}`,
         Icon: StackIcon,
       });
-      if (out.filter((r) => r.kind === "Year").length >= 6) break;
     }
+
+    for (const ci of data.checkIns) {
+      if (count("Check-in") >= PER_KIND) break;
+      const hit =
+        ci.gratitude.find((g) => g.toLowerCase().includes(q)) ??
+        (ci.note.toLowerCase().includes(q) ? ci.note : null);
+      if (!hit) continue;
+      out.push({
+        id: ci.id,
+        kind: "Check-in",
+        label: snippet(hit, q) ?? hit,
+        sub: `${formatLongDate(ci.date)} · ${ci.kind}`,
+        href: `/check-ins?date=${ci.date}`,
+        Icon: SunIcon,
+      });
+    }
+
     return out;
-  }, [query, data.tasks, data.listItems, data.memories, data.collectionItems, listNames, collectionYears]);
+  }, [
+    query,
+    data.tasks,
+    data.listItems,
+    data.notes,
+    data.memories,
+    data.collectionItems,
+    data.checkIns,
+    listNames,
+    collectionMeta,
+  ]);
 
   useEffect(() => {
     if (active >= results.length) setActive(0);
@@ -137,6 +207,8 @@ export function CommandPalette() {
     if (!r) return;
     setOpen(false);
     router.push(r.href);
+    // An already-mounted view won't re-run its mount effect — nudge it.
+    window.setTimeout(() => window.dispatchEvent(new Event(NAVIGATE_EVENT)), 150);
   }
 
   if (!open) return null;
@@ -166,7 +238,7 @@ export function CommandPalette() {
                 go(results[active]);
               }
             }}
-            placeholder="Search tasks, memories, books…"
+            placeholder="Search everything…"
             className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-faint"
           />
           <kbd className="hidden rounded border border-line px-1.5 py-0.5 text-[10px] text-faint sm:block">
@@ -177,7 +249,7 @@ export function CommandPalette() {
         <div className="thin-scrollbar max-h-[55vh] overflow-y-auto p-1.5">
           {query.trim() === "" ? (
             <p className="px-3 py-6 text-center text-sm text-faint">
-              Search across your days, lists, memories and year.
+              Tasks, lists, notes, memories, book notes &amp; quotes, gratitudes.
             </p>
           ) : results.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-faint">

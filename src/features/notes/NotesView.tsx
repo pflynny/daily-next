@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDeepLink } from "@/shared/hooks/useDeepLink";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
 import { cn } from "@/lib/utils/cn";
@@ -41,6 +42,11 @@ export function NotesView() {
   const notes = useNotes();
   const toast = useToast();
   const [openId, setOpenId] = useState<string | null>(null);
+  // /notes?note=<id> from search
+  useDeepLink((p) => {
+    const id = p.get("note");
+    if (id) setOpenId(id);
+  });
 
   const open = notes.all.find((n) => n.id === openId) ?? null;
 
