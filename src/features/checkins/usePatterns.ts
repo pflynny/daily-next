@@ -22,7 +22,16 @@ const STOPWORDS = new Set(
    all any into over after before about up out off than then when what
    which who how would could should will can one two lots lot bit
    day today tonight morning evening night good great nice lovely fun
-   time made make having had having`.split(/\s+/),
+   time made make having had having
+   while back little around again still only much even most such
+   own same other another few many every each both through during
+   because where why until since though although whether either
+   thing things something nothing everything anything someone
+   first last next new old long short big small early late
+   well way come came took take taking getting gets goes
+   feel feeling felt like liked really quite pretty rather always
+   never sometimes now later soon ago yesterday tomorrow week weekend
+   month year home house`.split(/\s+/),
 );
 
 export interface ToneShare {
