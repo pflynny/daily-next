@@ -13,8 +13,11 @@ import type {
 export function useCollections() {
   const { collections, collectionItems, put, del } = useAppData();
 
+  // Year 0 is the "All time" bucket (top-10s etc.), not a calendar year.
   const years = useMemo(() => {
-    const set = new Set<number>(collections.map((c) => c.year));
+    const set = new Set<number>(
+      collections.map((c) => c.year).filter((y) => y > 0),
+    );
     return Array.from(set).sort((a, b) => b - a);
   }, [collections]);
 
@@ -131,6 +134,24 @@ export function useCollections() {
     [put],
   );
 
+  /** Swap an entry with its neighbour (ranked lists). */
+  const reorderItem = useCallback(
+    (collectionId: string, itemId: string, dir: -1 | 1) => {
+      const ordered = collectionItems
+        .filter((i) => i.collectionId === collectionId)
+        .sort((a, b) => a.position - b.position);
+      const i = ordered.findIndex((it) => it.id === itemId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= ordered.length) return;
+      [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
+      put(
+        "collectionItems",
+        ordered.map((it, idx) => ({ ...it, position: idx })),
+      );
+    },
+    [collectionItems, put],
+  );
+
   /** Star as pick of the year — starring un-stars any other pick in the
    *  same collection; starring again un-stars it. */
   const togglePick = useCallback(
@@ -175,6 +196,7 @@ export function useCollections() {
     moveCollection,
     addItem,
     updateItem,
+    reorderItem,
     togglePick,
     deleteItem,
   };

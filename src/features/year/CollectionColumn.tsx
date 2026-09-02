@@ -16,8 +16,11 @@ import type { CollectionItem, CollectionView } from "@/types";
 interface CollectionColumnProps {
   collection: CollectionView;
   sort: "added" | "rating";
+  /** All-time lists: numbered, reorderable, no pick-floating. */
+  ranked?: boolean;
   isFirst: boolean;
   isLast: boolean;
+  onReorderItem?: (collectionId: string, itemId: string, dir: -1 | 1) => void;
   onRename: (collection: CollectionView, name: string) => void;
   onDelete: (collection: CollectionView) => void;
   onMove: (collectionId: string, dir: -1 | 1) => void;
@@ -29,8 +32,10 @@ interface CollectionColumnProps {
 export function CollectionColumn({
   collection,
   sort,
+  ranked = false,
   isFirst,
   isLast,
+  onReorderItem,
   onRename,
   onDelete,
   onMove,
@@ -45,12 +50,14 @@ export function CollectionColumn({
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Pick of the year floats to the top in either sort (stable sort keeps
-  // the rest in their existing order).
-  const items = [
-    ...(sort === "rating"
+  // the rest in their existing order). Ranked lists are the order itself.
+  const sorted =
+    sort === "rating"
       ? [...collection.items].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
-      : collection.items),
-  ].sort((a, b) => Number(b.pick) - Number(a.pick));
+      : collection.items;
+  const items = ranked
+    ? sorted
+    : [...sorted].sort((a, b) => Number(b.pick) - Number(a.pick));
 
   async function handleBannerFile(files: FileList | null) {
     if (!files?.[0]) return;
@@ -192,8 +199,20 @@ export function CollectionColumn({
             {uploading ? "Uploading cover…" : "Nothing here yet."}
           </p>
         )}
-        {items.map((item) => (
-          <CollectionItemRow key={item.id} item={item} onClick={onOpenItem} />
+        {items.map((item, idx) => (
+          <CollectionItemRow
+            key={item.id}
+            item={item}
+            rank={ranked ? idx + 1 : undefined}
+            canMoveUp={ranked && sort === "added" && idx > 0}
+            canMoveDown={ranked && sort === "added" && idx < items.length - 1}
+            onClick={onOpenItem}
+            onMove={
+              ranked && onReorderItem
+                ? (it, dir) => onReorderItem(collection.id, it.id, dir)
+                : undefined
+            }
+          />
         ))}
         <input
           value={draft}

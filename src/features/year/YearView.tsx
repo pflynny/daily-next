@@ -14,6 +14,9 @@ import { ItemDetailSheet } from "./ItemDetailSheet";
 import type { CollectionItem, CollectionView } from "@/types";
 
 const STARTERS = ["Books", "Movies", "TV Shows", "Music"];
+/** Collections with year 0 are the all-time bucket (top 10s). */
+const ALL_TIME = 0;
+const ALL_TIME_STARTERS = ["Top 10 films", "Top 10 games", "Top 10 books", "Top 10 albums"];
 
 export function YearView() {
   const col = useCollections();
@@ -28,14 +31,19 @@ export function YearView() {
   const [newCollection, setNewCollection] = useState("");
 
   const yearTabs = Array.from(
-    new Set([...col.years, currentYear, selectedYear]),
+    new Set([...col.years, currentYear, selectedYear].filter((y) => y > 0)),
   ).sort((a, b) => b - a);
 
   const collections = col.forYear(selectedYear);
+  const allTime = selectedYear === ALL_TIME;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title={view === "quotes" ? "QUOTES" : `YEAR ${selectedYear}`}>
+      <PageHeader
+        title={
+          view === "quotes" ? "QUOTES" : allTime ? "ALL TIME" : `YEAR ${selectedYear}`
+        }
+      >
         <div className="flex items-center rounded-lg border border-line p-0.5 text-[11px] font-semibold uppercase tracking-wide">
           <button
             onClick={() => setView("lists")}
@@ -75,7 +83,19 @@ export function YearView() {
       {view === "lists" && (
       <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-line px-4 py-2">
         <button
-          onClick={() => setSelectedYear((y) => y - 1)}
+          onClick={() => setSelectedYear(ALL_TIME)}
+          className={cn(
+            "shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide",
+            allTime
+              ? "border-brand-500 text-ink"
+              : "border-line text-muted hover:text-ink",
+          )}
+        >
+          All time
+        </button>
+        <span className="mx-1 h-4 w-px shrink-0 bg-line" />
+        <button
+          onClick={() => setSelectedYear((y) => (y === ALL_TIME ? currentYear : y) - 1)}
           aria-label="Earlier year"
           className="shrink-0 rounded-md p-1 text-muted hover:text-ink"
         >
@@ -116,7 +136,7 @@ export function YearView() {
               {col.notedByYear.map(([year, entries]) => (
                 <section key={year}>
                   <h2 className="mb-3 font-mono text-2xl font-bold tracking-tight text-brand-700">
-                    {year}
+                    {year === ALL_TIME ? "All time" : year}
                   </h2>
                   <div className="space-y-4">
                     {entries.map(({ item, collectionName }) => (
@@ -162,14 +182,15 @@ export function YearView() {
           <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
             <StackIcon size={40} className="text-brand-300" />
             <h2 className="mt-4 text-sm font-semibold text-ink">
-              Nothing logged for {selectedYear}
+              {allTime ? "No all-time lists yet" : `Nothing logged for ${selectedYear}`}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Start a list and add what you read, watched and listened to —
-              with a rating and a short review.
+              {allTime
+                ? "Ranked lists that outlast any year — your top 10 films, games, books. Add entries, then order them with the arrows."
+                : "Start a list and add what you read, watched and listened to — with a rating and a short review."}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
-              {STARTERS.map((name) => (
+              {(allTime ? ALL_TIME_STARTERS : STARTERS).map((name) => (
                 <button
                   key={name}
                   onClick={() => col.addCollection(selectedYear, name)}
@@ -187,8 +208,10 @@ export function YearView() {
                 key={collection.id}
                 collection={collection}
                 sort={sort}
+                ranked={allTime}
                 isFirst={i === 0}
                 isLast={i === collections.length - 1}
+                onReorderItem={col.reorderItem}
                 onRename={col.renameCollection}
                 onDelete={setConfirmCollection}
                 onMove={(id, dir) => col.moveCollection(selectedYear, id, dir)}
