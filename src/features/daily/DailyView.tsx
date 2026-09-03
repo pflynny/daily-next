@@ -42,6 +42,7 @@ import { OPEN_SEARCH_EVENT } from "@/features/search/CommandPalette";
 import { ListsPanel } from "@/features/lists/ListsPanel";
 import { QuotePanel } from "@/features/panel/QuotePanel";
 import { CheckInPrompt } from "@/features/checkins/CheckInPrompt";
+import { OnThisDay } from "@/features/memories/OnThisDay";
 import { ActiveDragChip } from "@/shared/components/ActiveDragChip";
 import { useTasks } from "./useTasks";
 import { DayColumn } from "./DayColumn";
@@ -281,6 +282,7 @@ export function DailyView() {
       </header>
 
       <CheckInPrompt />
+      <OnThisDay />
 
       {/* Days */}
       <DndContext

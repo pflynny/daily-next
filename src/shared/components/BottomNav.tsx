@@ -16,6 +16,7 @@ import {
   StackIcon,
   SparkleIcon,
   SettingsIcon,
+  TodayIcon,
 } from "@/shared/ui/icons";
 
 export const NAV_ITEMS = [
@@ -26,6 +27,7 @@ export const NAV_ITEMS = [
   { href: "/year", label: "Year", Icon: StackIcon },
   { href: "/wrapped", label: "Wrapped", Icon: SparkleIcon },
   { href: "/notes", label: "Notes", Icon: NoteIcon },
+  { href: "/week", label: "Week", Icon: TodayIcon },
   { href: "/settings", label: "Settings", Icon: SettingsIcon },
 ] as const;
 

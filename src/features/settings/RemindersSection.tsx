@@ -99,7 +99,7 @@ export function RemindersSection() {
   return (
     <div>
       <p className="mb-3 text-sm text-muted">
-        A morning (~7:30) and evening (~8pm) nudge to do your check-in — only
+        A morning (~7:30) and evening (~8pm) nudge to do your check-in, plus a Sunday-evening week in review — only
         sent if you haven’t already done it. On your phone, install the app to
         your home screen first.
       </p>

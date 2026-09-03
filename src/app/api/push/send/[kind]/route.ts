@@ -20,7 +20,7 @@ export async function GET(
   }
 
   const { kind } = await params;
-  if (kind !== "morning" && kind !== "evening") {
+  if (kind !== "morning" && kind !== "evening" && kind !== "weekly") {
     return NextResponse.json({ error: "bad_kind" }, { status: 400 });
   }
 
@@ -52,6 +52,44 @@ export async function GET(
     return NextResponse.json({ error: subsErr.message }, { status: 500 });
   }
   if (!subs?.length) return NextResponse.json({ sent: 0 });
+
+  // Weekly review: one summary per user, sent to everyone (no skipping).
+  if (kind === "weekly") {
+    const d = new Date(`${today}T00:00:00`);
+    const back = (d.getDay() + 6) % 7; // Monday start
+    d.setDate(d.getDate() - back);
+    const weekStart = d.toISOString().slice(0, 10);
+    const [{ data: doneTasks }, { data: weekCheckIns }] = await Promise.all([
+      supabase.from("tasks").select("user_id").eq("completed", true).gte("date", weekStart).lte("date", today),
+      supabase.from("check_ins").select("user_id, date").gte("date", weekStart).lte("date", today),
+    ]);
+    const taskCount = new Map<string, number>();
+    for (const r of doneTasks ?? []) taskCount.set(r.user_id, (taskCount.get(r.user_id) ?? 0) + 1);
+    const days = new Map<string, Set<string>>();
+    for (const r of weekCheckIns ?? []) days.set(r.user_id, (days.get(r.user_id) ?? new Set()).add(r.date));
+
+    let sentWeekly = 0;
+    const deadWeekly: string[] = [];
+    await Promise.all(
+      subs.map(async (s) => {
+        const t = taskCount.get(s.user_id) ?? 0;
+        const c = days.get(s.user_id)?.size ?? 0;
+        const body = `${t} task${t === 1 ? "" : "s"} done · ${c} check-in day${c === 1 ? "" : "s"}. Tap for your week.`;
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            JSON.stringify({ title: "Your week in review", body, url: "/week" }),
+          );
+          sentWeekly += 1;
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) deadWeekly.push(s.id);
+        }
+      }),
+    );
+    if (deadWeekly.length) await supabase.from("push_subscriptions").delete().in("id", deadWeekly);
+    return NextResponse.json({ sent: sentWeekly, pruned: deadWeekly.length });
+  }
 
   // Skip users who already checked in.
   const { data: doneRows } = await supabase
