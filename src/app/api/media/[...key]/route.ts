@@ -42,8 +42,9 @@ export async function GET(
       ...(obj.contentLength
         ? { "Content-Length": String(obj.contentLength) }
         : {}),
-      // Private and immutable: keys are UUIDs, content never changes.
-      "Cache-Control": "private, max-age=31536000, immutable",
+      // Authentication must be checked on every request, including after logout.
+      "Cache-Control": "private, no-store",
+      "Vary": "Cookie",
     },
   });
 }

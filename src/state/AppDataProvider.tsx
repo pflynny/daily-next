@@ -1,294 +1,91 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { getBrowserClient } from "@/lib/supabase/client";
 import { useAuth } from "@/features/auth/AuthProvider";
-import {
-  EMPTY_STATE,
-  ENTITIES,
-  STATE_KEYS,
-  type EntityState,
-  type StateKey,
-} from "@/lib/db/entities";
-import { carryOverTasks } from "@/lib/db/carryover";
-import { generateRoutineTasks } from "@/lib/db/routines";
-import { DEFAULT_SETTINGS, type AppSettings } from "@/types";
-
-interface HasId {
-  id: string;
-}
+import { type EntityState, type StateKey } from "@/lib/db/entities";
+import { SyncStore, type SyncView } from "@/lib/db/syncStore";
+import { cloudAdapter } from "@/lib/db/cloud";
+import { readSnapshot, snapshotKey } from "@/lib/db/browserStorage";
+import { todayKey } from "@/lib/utils/date";
+import type { AppSettings } from "@/types";
 
 interface AppDataValue extends EntityState {
   status: "loading" | "ready";
   settings: AppSettings;
-  /** Optimistically insert/update rows in a collection (and sync to cloud). */
+  sync: Pick<SyncView, "syncing" | "error" | "storageError" | "verified"> & { pending: number };
   put<K extends StateKey>(key: K, items: EntityState[K]): void;
-  /** Optimistically delete rows by id (and sync to cloud). */
   del(key: StateKey, ids: string[]): void;
   setSettings(patch: Partial<AppSettings>): void;
+  retrySync(): Promise<void>;
+  flush(): Promise<void>;
 }
-
 const AppDataContext = createContext<AppDataValue | null>(null);
-
-const SNAPSHOT_PREFIX = "daily-next:v1";
-
-function snapshotKey(userId: string | null): string {
-  return `${SNAPSHOT_PREFIX}:${userId ?? "guest"}`;
-}
-
-function upsertMany<T extends HasId>(existing: T[], incoming: T[]): T[] {
-  if (incoming.length === 0) return existing;
-  const map = new Map(existing.map((row) => [row.id, row]));
-  for (const row of incoming) map.set(row.id, row);
-  return Array.from(map.values());
-}
-
-function loadSnapshot(
-  key: string,
-): { state: EntityState; settings: AppSettings } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const state = { ...EMPTY_STATE };
-    for (const k of STATE_KEYS) {
-      if (Array.isArray(parsed.state?.[k])) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (state as any)[k] = parsed.state[k];
-      }
-    }
-    return {
-      state,
-      settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchAll(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<{ state: EntityState; settings: AppSettings }> {
-  const state: EntityState = { ...EMPTY_STATE };
-
-  await Promise.all(
-    STATE_KEYS.map(async (key) => {
-      const { table, orderBy, fromRow } = ENTITIES[key];
-      const { data, error } = await supabase
-        .from(table)
-        .select("*")
-        .eq("user_id", userId)
-        .order(orderBy, { ascending: true });
-      if (!error && data) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (state as any)[key] = data.map(fromRow);
-      }
-    }),
-  );
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("settings")
-    .eq("id", userId)
-    .maybeSingle();
-
-  return {
-    state,
-    settings: { ...DEFAULT_SETTINGS, ...(profile?.settings ?? {}) },
-  };
-}
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const { cloud, user } = useAuth();
-  const userId = cloud ? (user?.id ?? null) : null;
+  const userId = cloud ? user?.id ?? null : null;
+  return <AccountData key={userId ?? "guest"} userId={userId}>{children}</AccountData>;
+}
 
-  const [data, setData] = useState<EntityState>(EMPTY_STATE);
-  const [settings, setSettingsState] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [status, setStatus] = useState<"loading" | "ready">("loading");
-
-  const supabase = cloud ? getBrowserClient() : null;
-  const supabaseRef = useRef(supabase);
-  const userIdRef = useRef(userId);
-  // Cloud writes run one at a time, in call order — parent rows (memories,
-  // lists) must land before children (memory_media, list_items) or the
-  // foreign-key checks reject the child.
-  const writeQueue = useRef<Promise<unknown>>(Promise.resolve());
-  // Keep refs current for the stable put/del/setSettings callbacks. Updated in
-  // an effect (never during render) so reads stay pure.
-  useEffect(() => {
-    supabaseRef.current = supabase;
-    userIdRef.current = userId;
-  });
-
-  // ---- Load ----------------------------------------------------------------
-  useEffect(() => {
-    let active = true;
-    setStatus("loading");
+function AccountData({ children, userId }: { children: React.ReactNode; userId: string | null }) {
+  const [store] = useState(() => {
     const key = snapshotKey(userId);
-
-    async function load() {
-      // Instant paint from cache.
-      const cached = loadSnapshot(key);
-      if (cached && active) {
-        setData(cached.state);
-        setSettingsState(cached.settings);
-      }
-
-      let next = cached ?? { state: EMPTY_STATE, settings: DEFAULT_SETTINGS };
-
-      if (cloud && supabaseRef.current && userId) {
-        try {
-          next = await fetchAll(supabaseRef.current, userId);
-        } catch (err) {
-          console.error("Failed to load cloud data", err);
-        }
-      }
-
-      if (!active) return;
-
-      // Daily carryover of incomplete tasks, then routine generation.
-      const carried = carryOverTasks(next.state.tasks);
-      const gen = generateRoutineTasks(next.state.routines, carried.tasks);
-      const finalState = {
-        ...next.state,
-        tasks: gen.tasks,
-        routines: gen.routines,
-      };
-      setData(finalState);
-      setSettingsState(next.settings);
-      setStatus("ready");
-
-      const changedTasks = [...carried.changed, ...gen.changedTasks];
-      const sb = supabaseRef.current;
-      if (cloud && sb && userId) {
-        if (changedTasks.length) {
-          void sb.from("tasks").upsert(
-            changedTasks.map((t) => ({
-              ...ENTITIES.tasks.toRow(t),
-              user_id: userId,
-            })),
-          );
-        }
-        if (gen.changedRoutines.length) {
-          void sb.from("routines").upsert(
-            gen.changedRoutines.map((r) => ({
-              ...ENTITIES.routines.toRow(r),
-              user_id: userId,
-            })),
-          );
-        }
-      }
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [cloud, userId]);
-
-  // ---- Persist snapshot (debounced) ---------------------------------------
-  useEffect(() => {
-    if (status !== "ready" || typeof window === "undefined") return;
-    const key = snapshotKey(userId);
-    const id = window.setTimeout(() => {
-      try {
-        window.localStorage.setItem(
-          key,
-          JSON.stringify({ state: data, settings }),
-        );
-      } catch {
-        // storage full / unavailable — ignore
-      }
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [data, settings, status, userId]);
-
-  // ---- Mutators ------------------------------------------------------------
-  const put = useCallback<AppDataValue["put"]>((key, items) => {
-    if (items.length === 0) return;
-    setData((prev) => ({
-      ...prev,
-      [key]: upsertMany(prev[key] as HasId[], items as HasId[]),
-    }));
-    const sb = supabaseRef.current;
-    const uid = userIdRef.current;
-    if (sb && uid) {
-      const { table, toRow } = ENTITIES[key];
-      const rows = items.map((item) => ({ ...toRow(item), user_id: uid }));
-      const write = () =>
-        sb
-          .from(table)
-          .upsert(rows)
-          .then(({ error }) => {
-            if (error) console.error(`upsert ${table} failed`, error);
-          });
-      writeQueue.current = writeQueue.current.then(write, write);
-    }
-  }, []);
-
-  const del = useCallback<AppDataValue["del"]>((key, ids) => {
-    if (ids.length === 0) return;
-    const idSet = new Set(ids);
-    setData((prev) => ({
-      ...prev,
-      [key]: (prev[key] as HasId[]).filter((row) => !idSet.has(row.id)),
-    }));
-    const sb = supabaseRef.current;
-    const uid = userIdRef.current;
-    if (sb && uid) {
-      const { table } = ENTITIES[key];
-      const write = () =>
-        sb
-          .from(table)
-          .delete()
-          .in("id", ids)
-          .then(({ error }) => {
-            if (error) console.error(`delete ${table} failed`, error);
-          });
-      writeQueue.current = writeQueue.current.then(write, write);
-    }
-  }, []);
-
-  const setSettings = useCallback<AppDataValue["setSettings"]>((patch) => {
-    setSettingsState((prev) => {
-      const nextSettings = { ...prev, ...patch };
-      const sb = supabaseRef.current;
-      const uid = userIdRef.current;
-      if (sb && uid) {
-        void sb
-          .from("profiles")
-          .upsert({ id: uid, settings: nextSettings })
-          .then(({ error }) => {
-            if (error) console.error("settings upsert failed", error);
-          });
-      }
-      return nextSettings;
+    const client = userId ? getBrowserClient() : null;
+    return new SyncStore({
+      read: () => readSnapshot(key),
+      write: (snapshot) => window.localStorage.setItem(key, JSON.stringify(snapshot)),
+      remote: client && userId ? cloudAdapter(client, userId) : undefined,
+      lock: async <T,>(work: () => Promise<T>): Promise<T> => {
+        if (!navigator.locks) return await work();
+        return await navigator.locks.request(`daily-sync:${key}`, work);
+      },
     });
-  }, []);
+  });
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-  const value = useMemo<AppDataValue>(
-    () => ({ ...data, status, settings, put, del, setSettings }),
-    [data, status, settings, put, del, setSettings],
-  );
+  useEffect(() => {
+    store.start();
+    let day = todayKey();
+    const refresh = () => { if (document.visibilityState === "visible") void store.sync(); };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== snapshotKey(userId)) return;
+      if (event.newValue === null) store.stop();
+      else store.receiveStorage();
+    };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (store.getSnapshot().storageError) { event.preventDefault(); event.returnValue = ""; }
+    };
+    const timer = window.setInterval(() => {
+      if (todayKey() !== day) { day = todayKey(); refresh(); }
+    }, 60_000);
+    window.addEventListener("online", refresh);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      store.stop();
+      window.clearInterval(timer);
+      window.removeEventListener("online", refresh);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [store, userId]);
 
-  return (
-    <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>
-  );
+  const value = useMemo<AppDataValue>(() => ({
+    ...snapshot.state, settings: snapshot.settings, status: snapshot.status,
+    sync: { syncing: snapshot.syncing, error: snapshot.error, storageError: snapshot.storageError,
+      verified: snapshot.verified, pending: snapshot.pending.length },
+    put: store.put, del: store.del, setSettings: store.setSettings,
+    retrySync: () => store.sync(), flush: store.flush,
+  }), [snapshot, store]);
+
+  return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
 
 export function useAppData(): AppDataValue {
-  const ctx = useContext(AppDataContext);
-  if (!ctx) throw new Error("useAppData must be used within AppDataProvider");
-  return ctx;
+  const context = useContext(AppDataContext);
+  if (!context) throw new Error("useAppData must be used within AppDataProvider");
+  return context;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Modal } from "@/shared/ui/Modal";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { formatLongDate } from "@/lib/utils/date";
@@ -42,6 +43,7 @@ function snippet(text: string, q: string): string | null {
 
 export function CommandPalette() {
   const router = useRouter();
+  const titleId = useId();
   const data = useAppData();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -53,8 +55,7 @@ export function CommandPalette() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((o) => !o);
-      } else if (e.key === "Escape") {
-        setOpen(false);
+
       }
     };
     const onOpen = () => setOpen(true);
@@ -211,20 +212,16 @@ export function CommandPalette() {
     window.setTimeout(() => window.dispatchEvent(new Event(NAVIGATE_EVENT)), 150);
   }
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[80] flex justify-center px-4 pt-[12vh]">
-      <button
-        aria-label="Close search"
-        onClick={() => setOpen(false)}
-        className="absolute inset-0 bg-ink/40 animate-fade-in"
-      />
+    <Modal open={open} onClose={() => setOpen(false)} labelledBy={titleId} className="justify-center px-4 pt-[12vh]">
       <div className="relative h-fit w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-surface shadow-xl animate-fade-rise">
+        <h2 id={titleId} className="sr-only">Search Daily</h2>
         <div className="flex items-center gap-2.5 border-b border-line px-4">
           <SearchIcon size={18} className="text-faint" />
           <input
             ref={inputRef}
+            autoFocus
+            aria-label="Search everything"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -285,6 +282,6 @@ export function CommandPalette() {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

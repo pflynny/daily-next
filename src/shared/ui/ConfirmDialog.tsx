@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useId } from "react";
+import { Modal } from "./Modal";
+import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -23,48 +25,26 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
-
-  if (!open) return null;
-
+  const titleId = useId();
+  const messageId = useId();
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-6">
-      <button
-        aria-label="Cancel"
-        onClick={onCancel}
-        className="absolute inset-0 bg-ink/40 animate-fade-in"
-      />
+    <Modal open={open} onClose={onCancel} labelledBy={titleId} describedBy={message ? messageId : undefined} className="items-center justify-center px-6">
       <div className="relative w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-xl animate-fade-rise">
-        <h3 className="mb-1.5 font-mono text-sm font-semibold text-ink">
+        <h3 id={titleId} className="mb-1.5 font-mono text-sm font-semibold text-ink">
           {title}
         </h3>
-        {message && <p className="mb-4 text-sm text-muted">{message}</p>}
+        {message && <p id={messageId} className="mb-4 text-sm text-muted">{message}</p>}
         <div className="flex items-center justify-end gap-2">
-          <button
+          <Button data-initial-focus
             onClick={onCancel}
-            className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
           >
             {cancelLabel}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={
-              destructive
-                ? "rounded-lg bg-danger px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:opacity-90"
-                : "rounded-lg bg-brand-700 px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-brand-800"
-            }
-          >
+          </Button>
+          <Button variant={destructive ? "danger" : "primary"} onClick={onConfirm}>
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

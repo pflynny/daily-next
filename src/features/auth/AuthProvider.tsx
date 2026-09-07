@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { getBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { clearAccountSnapshot, clearPrivateMediaCaches, readSnapshot, snapshotKey } from "@/lib/db/browserStorage";
 import type { AuthUser } from "@/types";
 
 type AuthStatus = "loading" | "authed" | "signedout" | "guest";
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setStatus("signedout");
+        void clearPrivateMediaCaches().catch(console.error);
       }
     });
 
@@ -102,8 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     const supabase = getBrowserClient();
-    if (supabase) await supabase.auth.signOut();
-  }, []);
+    if (!supabase) return;
+    if (user && readSnapshot(snapshotKey(user.id))?.pending.length) {
+      throw new Error("Please sync your pending changes before signing out.");
+    }
+    await clearPrivateMediaCaches();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error(error.message);
+    if (user) clearAccountSnapshot(user.id);
+  }, [user]);
 
   const sendReset = useCallback<AuthContextValue["sendReset"]>(async (email) => {
     const supabase = getBrowserClient();

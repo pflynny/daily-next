@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown } from "@/shared/ui/icons";
 import { type FeelingTone } from "./feelings";
@@ -28,12 +28,17 @@ interface FeelingPickerProps {
 
 export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
   const [expanded, setExpanded] = useState(false);
+  const [query, setQuery] = useState("");
   const { feelings, primary } = useFeelings();
   const sel = new Set(selected);
 
   // Always show primary words plus anything already selected.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? feelings.filter((f) => f.word.toLowerCase().includes(q)) : feelings;
+  }, [feelings, query]);
   const visible = expanded
-    ? feelings
+    ? filtered
     : feelings.filter((f) => primary.has(f.word) || sel.has(f.word));
   const hiddenCount = feelings.length - visible.length;
 
@@ -47,7 +52,7 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
               key={word}
               onClick={() => onToggle(word)}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                "min-h-11 rounded-full border px-3 text-xs transition-colors",
                 on ? TONE_STYLE[tone].on : TONE_STYLE[tone].off,
               )}
             >
@@ -57,8 +62,8 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
         })}
         {hiddenCount > 0 && (
           <button
-            onClick={() => setExpanded(true)}
-            className="flex items-center gap-1 rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-faint hover:text-ink"
+            onClick={() => { setExpanded(true); setQuery(""); }}
+            className="flex min-h-11 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
           >
             <ChevronDown size={12} /> {hiddenCount} more
           </button>
@@ -66,12 +71,21 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
         {expanded && (
           <button
             onClick={() => setExpanded(false)}
-            className="flex items-center gap-1 rounded-full border border-dashed border-line px-2.5 py-1 text-xs text-faint hover:text-ink"
+            className="flex min-h-11 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
           >
             <ChevronDown size={12} className="rotate-180" /> less
           </button>
         )}
       </div>
+      {expanded && (
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search all feelings…"
+          aria-label="Search all feelings"
+          className="mt-2 min-h-11 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none focus:border-brand-400"
+        />
+      )}
     </div>
   );
 }

@@ -179,6 +179,26 @@
   animation: fade-in 180ms ease-out;
 }
 
+.app-modal::backdrop {
+  background: rgb(28 28 26 / 40%);
+  backdrop-filter: blur(1px);
+}
+
+/* A visible keyboard ring is part of the product's quiet visual language. */
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* View Transition defaults — gentle cross-fade between tabs/views */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),

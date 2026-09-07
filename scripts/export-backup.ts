@@ -15,6 +15,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { ENTITIES, STATE_KEYS } from "../src/lib/db/entities";
+import { readAllRows } from "../src/lib/db/readAllRows";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,10 +31,7 @@ const outPath =
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 async function main() {
-  const { data: profiles, error: profileErr } = await supabase
-    .from("profiles")
-    .select("id, email, settings");
-  if (profileErr) throw profileErr;
+  const profiles = await readAllRows(supabase, "profiles");
 
   const wantEmail = process.env.MIGRATE_USER_EMAIL;
   const profile =
@@ -49,15 +47,9 @@ async function main() {
 
   const state: Record<string, unknown[]> = {};
   for (const key of STATE_KEYS) {
-    const { table, orderBy, fromRow } = ENTITIES[key];
-    const { data, error } = await supabase
-      .from(table)
-      .select("*")
-      .eq("user_id", profile.id)
-      .order(orderBy, { ascending: true })
-      .range(0, 49999);
-    if (error) throw error;
-    state[key] = (data ?? []).map(fromRow);
+    const { table, fromRow } = ENTITIES[key];
+    const rows = await readAllRows(supabase, table, { column: "user_id", id: String(profile.id) });
+    state[key] = rows.map(fromRow);
     console.log(`${key}: ${state[key].length}`);
   }
 

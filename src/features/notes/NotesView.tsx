@@ -139,7 +139,6 @@ function NoteEditor({
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
   const [preview, setPreview] = useState(false);
-  const saved = useRef({ title: note.title, body: note.body });
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   // Grow the textarea with its content so the page scrolls (scrollbar at
@@ -154,20 +153,15 @@ function NoteEditor({
     autosize();
   }, [preview]);
 
-  // Debounced auto-save while typing.
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      const patch: Partial<Pick<Note, "title" | "body">> = {};
-      if (title !== saved.current.title) patch.title = title;
-      if (body !== saved.current.body) patch.body = body;
-      if (Object.keys(patch).length) {
-        saved.current = { title, body };
-        onChange(patch);
-      }
-    }, 600);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body]);
+  // Drafts are persisted synchronously; the data store debounces cloud writes.
+  function changeTitle(value: string) {
+    setTitle(value);
+    onChange({ title: value, body });
+  }
+  function changeBody(value: string) {
+    setBody(value);
+    onChange({ title, body: value });
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -181,7 +175,8 @@ function NoteEditor({
         </button>
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => changeTitle(e.target.value)}
+          aria-label="Note title"
           placeholder="Untitled"
           className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-faint"
         />
@@ -254,10 +249,11 @@ function NoteEditor({
           ) : (
             <textarea
               ref={taRef}
+              aria-label="Note body"
               autoFocus
               value={body}
               onChange={(e) => {
-                setBody(e.target.value);
+                changeBody(e.target.value);
                 autosize();
               }}
               placeholder={"Write in markdown…\n\n# Heading\n- list item\n- [ ] todo\n**bold** and [links](https://example.com)"}

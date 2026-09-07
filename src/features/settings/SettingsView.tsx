@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { SyncStatus } from "@/shared/components/SyncStatus";
+import { Button } from "@/shared/ui/Button";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { Screen } from "@/shared/components/Screen";
-import { cn } from "@/lib/utils/cn";
 import { TrashIcon, UploadIcon } from "@/shared/ui/icons";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useAppData } from "@/state/AppDataProvider";
@@ -151,6 +152,16 @@ export function SettingsView() {
   const { likedQuotes, remove } = useLikedQuotes();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function signOut() {
+    setSigningOut(true);
+    setAccountError(null);
+    try { await data.flush(); await auth.signOut(); }
+    catch (error) { setAccountError(error instanceof Error ? error.message : "Could not sign out. Please retry."); }
+    finally { setSigningOut(false); }
+  }
 
   function exportBackup() {
     const state: Record<string, unknown> = {};
@@ -204,12 +215,13 @@ export function SettingsView() {
                 <p className="mb-3 text-sm text-muted">
                   {auth.user?.email ?? "Signed in"}
                 </p>
-                <button
-                  onClick={auth.signOut}
+                <Button
+                  onClick={() => void signOut()}
+                  disabled={signingOut}
                   className="rounded-lg border border-line px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
                 >
-                  Sign out
-                </button>
+                  {signingOut ? "Saving changes…" : "Sign out"}
+                </Button>
               </>
             ) : (
               <p className="text-sm text-muted">
@@ -217,17 +229,8 @@ export function SettingsView() {
                 Supabase to sync across devices.
               </p>
             )}
-            <div className="mt-3 flex items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "inline-block size-2 rounded-full",
-                  auth.cloud ? "bg-brand-500" : "bg-faint",
-                )}
-              />
-              <span className="text-muted">
-                {auth.cloud ? "Cloud sync on" : "Local only"}
-              </span>
-            </div>
+            <div className="mt-3"><SyncStatus compact /></div>
+            {accountError && <p role="alert" className="mt-2 text-sm text-danger">{accountError}</p>}
           </Section>
 
           {/* Preferences */}

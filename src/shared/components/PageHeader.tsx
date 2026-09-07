@@ -28,7 +28,7 @@ export function PageHeader({
           <button
             onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
             aria-label="Search"
-            className="rounded-lg p-1.5 text-muted hover:bg-sand hover:text-ink"
+            className="flex size-11 items-center justify-center rounded-lg text-muted hover:bg-sand hover:text-ink"
           >
             <SearchIcon size={18} />
           </button>

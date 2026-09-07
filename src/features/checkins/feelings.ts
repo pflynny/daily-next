@@ -87,19 +87,12 @@ export const PRIMARY_FEELINGS = new Set([
   "content",
   "hopeful",
   "excited",
-  "energetic",
-  "motivated",
-  "proud",
   "tired",
   "neutral",
   "stressed",
   "anxious",
   "sad",
-  "drained",
   "overwhelmed",
-  "frustrated",
-  "low",
-  "worried",
 ]);
 
 export const TONE_OF = new Map(FEELINGS.map((f) => [f.word, f.tone]));

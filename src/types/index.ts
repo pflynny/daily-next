@@ -277,7 +277,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showLists: true,
   showPanel: true,
   weekStartsOn: 1,
-  navMore: ["/year", "/wrapped", "/notes", "/week"],
+  navMore: ["/year", "/wrapped", "/notes", "/week", "/settings"],
   navOrder: [],
   customFeelings: [],
   hiddenFeelings: [],

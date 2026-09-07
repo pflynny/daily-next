@@ -63,7 +63,7 @@ function NavLink({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex flex-1 flex-col items-center gap-1 py-2 transition-colors",
+        "group relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
         active ? "text-brand-700" : "text-faint hover:text-ink",
       )}
     >
@@ -92,10 +92,13 @@ export function BottomNav() {
   const ordered = orderNavItems(settings.navOrder);
   const moreSet = new Set(settings.navMore);
   const collapse = !isDesktop && settings.navMore.length > 0;
-  const barItems = collapse
-    ? ordered.filter((i) => !moreSet.has(i.href))
-    : ordered;
-  const moreItems = collapse ? ordered.filter((i) => moreSet.has(i.href)) : [];
+  const configuredBar = ordered.filter((i) => !moreSet.has(i.href));
+  // Keep the mobile bar scannable even for older/custom settings that only
+  // listed four overflow items. The rest remains available under More.
+  const barItems = collapse ? configuredBar.slice(0, 4) : ordered;
+  const moreItems = collapse
+    ? [...configuredBar.slice(4), ...ordered.filter((i) => moreSet.has(i.href))]
+    : [];
   const moreActive = moreItems.some((i) => isActive(pathname, i.href));
 
   return (
@@ -116,7 +119,7 @@ export function BottomNav() {
               aria-label="More tabs"
               aria-expanded={moreOpen}
               className={cn(
-                "group relative flex flex-1 flex-col items-center gap-1 py-2 transition-colors",
+                "group relative flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
                 moreActive ? "text-brand-700" : "text-faint hover:text-ink",
               )}
             >
@@ -146,7 +149,7 @@ export function BottomNav() {
                         key={href}
                         href={href}
                         className={cn(
-                          "flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide",
+                          "flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide",
                           active
                             ? "text-brand-700"
                             : "text-muted hover:bg-sand hover:text-ink",
