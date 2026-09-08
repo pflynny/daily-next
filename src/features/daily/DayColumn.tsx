@@ -19,6 +19,7 @@ interface DayColumnProps {
   onToggle: (task: Task) => void;
   onUpdateText: (task: Task, text: string) => void;
   onOpenDetail: (task: Task) => void;
+  onRepeat: (task: Task) => void;
   onDelete: (task: Task) => void;
 }
 
@@ -30,6 +31,7 @@ export function DayColumn({
   onToggle,
   onUpdateText,
   onOpenDetail,
+  onRepeat,
   onDelete,
 }: DayColumnProps) {
   const isToday = dateKey === todayKey();
@@ -89,6 +91,7 @@ export function DayColumn({
               onToggle={onToggle}
               onUpdateText={onUpdateText}
               onOpenDetail={onOpenDetail}
+              onRepeat={onRepeat}
               onDelete={onDelete}
             />
           ))}
@@ -118,6 +121,7 @@ export function DayColumn({
                 onToggle={onToggle}
                 onUpdateText={onUpdateText}
                 onOpenDetail={onOpenDetail}
+                onRepeat={onRepeat}
                 onDelete={onDelete}
               />
             ))}

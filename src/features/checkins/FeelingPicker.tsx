@@ -52,7 +52,7 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
               key={word}
               onClick={() => onToggle(word)}
               className={cn(
-                "min-h-11 rounded-full border px-3 text-xs transition-colors",
+                "min-h-8 rounded-full border px-3 text-xs transition-colors",
                 on ? TONE_STYLE[tone].on : TONE_STYLE[tone].off,
               )}
             >
@@ -63,7 +63,7 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
         {hiddenCount > 0 && (
           <button
             onClick={() => { setExpanded(true); setQuery(""); }}
-            className="flex min-h-11 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
+            className="flex min-h-8 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
           >
             <ChevronDown size={12} /> {hiddenCount} more
           </button>
@@ -71,7 +71,7 @@ export function FeelingPicker({ selected, onToggle }: FeelingPickerProps) {
         {expanded && (
           <button
             onClick={() => setExpanded(false)}
-            className="flex min-h-11 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
+            className="flex min-h-8 items-center gap-1 rounded-full border border-dashed border-line px-3 text-xs text-faint hover:text-ink"
           >
             <ChevronDown size={12} className="rotate-180" /> less
           </button>

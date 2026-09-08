@@ -15,6 +15,7 @@ interface TaskRowProps {
   onToggle: (task: Task) => void;
   onUpdateText: (task: Task, text: string) => void;
   onOpenDetail: (task: Task) => void;
+  onRepeat: (task: Task) => void;
   onDelete: (task: Task) => void;
 }
 
@@ -24,6 +25,7 @@ export function TaskRow({
   onToggle,
   onUpdateText,
   onOpenDetail,
+  onRepeat,
   onDelete,
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false);
@@ -91,6 +93,7 @@ export function TaskRow({
         <DropdownItem onClick={() => onOpenDetail(task)}>
           <NoteIcon size={13} /> {task.notes ? "Edit notes" : "Add notes"}
         </DropdownItem>
+        {!task.isLabel && <DropdownItem onClick={() => onRepeat(task)}>Repeat…</DropdownItem>}
         <DropdownSeparator />
         <DropdownItem danger onClick={() => onDelete(task)}>
           <TrashIcon size={13} /> Delete

@@ -4,7 +4,8 @@ import { useCallback, useMemo } from "react";
 import { useAppData } from "@/state/AppDataProvider";
 import { newId } from "@/lib/utils/id";
 import { todayKey } from "@/lib/utils/date";
-import type { Routine } from "@/types";
+import { routineFromTask } from "@/lib/db/routines";
+import type { Routine, Task } from "@/types";
 
 export function useRoutines() {
   const { routines, tasks, put, del } = useAppData();
@@ -62,6 +63,11 @@ export function useRoutines() {
     [put],
   );
 
+  const repeatTask = useCallback((task: Task, days: number[]) => {
+    const routine = routineFromTask(task, days, routines);
+    if (routine) put("routines", [routine]);
+  }, [routines, put]);
+
   const deleteRoutine = useCallback(
     (id: string) => {
       const routine = routines.find((r) => r.id === id);
@@ -73,5 +79,5 @@ export function useRoutines() {
     [routines, del, put],
   );
 
-  return { routines: ordered, addRoutine, updateRoutine, deleteRoutine };
+  return { routines: ordered, addRoutine, repeatTask, updateRoutine, deleteRoutine };
 }

@@ -2,6 +2,24 @@ import type { Routine, Task } from "@/types";
 import { newId } from "@/lib/utils/id";
 import { todayKey } from "@/lib/utils/date";
 
+/** Convert an existing task without creating another occurrence on its date. */
+export function routineFromTask(task: Task, days: number[], routines: Routine[]): Routine | null {
+  const schedule = [...new Set(days)].filter((day) => Number.isInteger(day) && day >= 0 && day <= 6).sort();
+  if (task.isLabel || !task.text.trim() || !schedule.length) return null;
+  const existing = routines.find((routine) => routine.id === task.id);
+  return {
+    // Task and routine UUIDs live in separate tables. Re-saving this source
+    // updates its routine rather than creating a second schedule.
+    id: task.id,
+    text: task.text.trim(),
+    days: schedule,
+    active: true,
+    position: existing?.position ?? routines.length,
+    lastGenerated: [todayKey(), task.date, existing?.lastGenerated ?? ""].sort().at(-1)!,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+  };
+}
+
 /**
  * Generate today's tasks from active routines whose schedule includes today's
  * weekday and that haven't been generated yet today. Returns the merged lists
@@ -28,7 +46,7 @@ export function generateRoutineTasks(
   const changedRoutines: Routine[] = [];
 
   const updatedRoutines = routines.map((r) => {
-    if (r.active && r.days.includes(weekday) && r.lastGenerated !== today) {
+    if (r.active && r.days.includes(weekday) && (!r.lastGenerated || r.lastGenerated < today)) {
       newTasks.push({
         id: newId(),
         date: today,

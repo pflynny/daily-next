@@ -47,6 +47,7 @@ import { ActiveDragChip } from "@/shared/components/ActiveDragChip";
 import { useTasks } from "./useTasks";
 import { DayColumn } from "./DayColumn";
 import { TaskDetailSheet } from "./TaskDetailSheet";
+import { RepeatTaskSheet } from "@/features/routines/RepeatTaskSheet";
 import type { Task } from "@/types";
 
 const SWIPE_THRESHOLD = 48;
@@ -73,6 +74,7 @@ export function DailyView() {
   const [windowStart, setWindowStart] = useState(() => new Date());
   const [currentDay, setCurrentDay] = useState(() => new Date());
   const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [repeatTask, setRepeatTask] = useState<Task | null>(null);
   const [listsSheet, setListsSheet] = useState(false);
   // Desktop column count — a per-device display preference.
   const [dayCount, setDayCount] = useState<1 | 3 | 5>(5);
@@ -311,6 +313,7 @@ export function DailyView() {
                   onToggle={toggleTask}
                   onUpdateText={(t, text) => updateTask(t, { text })}
                   onOpenDetail={setDetailTask}
+                  onRepeat={setRepeatTask}
                   onDelete={handleDeleteTask}
                 />
               );
@@ -348,6 +351,7 @@ export function DailyView() {
                     onToggle={toggleTask}
                     onUpdateText={(t, text) => updateTask(t, { text })}
                     onOpenDetail={setDetailTask}
+                    onRepeat={setRepeatTask}
                     onDelete={handleDeleteTask}
                   />
                 );
@@ -406,6 +410,7 @@ export function DailyView() {
         onMoveDate={(t, toKey) => updateTask(t, { date: toKey })}
         onDelete={handleDeleteTask}
       />
+      {repeatTask && <RepeatTaskSheet task={repeatTask} onClose={() => setRepeatTask(null)} />}
     </div>
   );
 }
