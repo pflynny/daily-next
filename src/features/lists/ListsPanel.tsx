@@ -8,6 +8,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils/cn";
+import { pasteLines } from "@/lib/utils/pasteLines";
 import { formatLongDate, todayKey } from "@/lib/utils/date";
 import { Sheet } from "@/shared/ui/Sheet";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -334,6 +335,10 @@ export function ListsPanel() {
               </span>
               <textarea
                 value={detailItem.text}
+                onPaste={(e) => pasteLines(e, (text) => {
+                  lists.updateItemText(detailItem, text);
+                  setDetailItem({ ...detailItem, text: text.split("\n")[0] });
+                })}
                 onChange={(e) => {
                   lists.updateItem(detailItem, { text: e.target.value });
                   setDetailItem({ ...detailItem, text: e.target.value });

@@ -4,12 +4,14 @@ import { Sheet } from "@/shared/ui/Sheet";
 import { NotesField } from "@/shared/components/NotesField";
 import { TrashIcon } from "@/shared/ui/icons";
 import { formatLongDate } from "@/lib/utils/date";
+import { pasteLines } from "@/lib/utils/pasteLines";
 import type { Task } from "@/types";
 
 interface TaskDetailSheetProps {
   task: Task | null;
   onClose: () => void;
   onUpdate: (task: Task, patch: Partial<Task>) => void;
+  onPasteText: (task: Task, text: string) => void;
   onMoveDate: (task: Task, toDateKey: string) => void;
   onDelete: (task: Task) => void;
 }
@@ -18,6 +20,7 @@ export function TaskDetailSheet({
   task,
   onClose,
   onUpdate,
+  onPasteText,
   onMoveDate,
   onDelete,
 }: TaskDetailSheetProps) {
@@ -55,6 +58,7 @@ export function TaskDetailSheet({
         <textarea
           value={task.text}
           onChange={(e) => onUpdate(task, { text: e.target.value })}
+          onPaste={(e) => pasteLines(e, (text) => onPasteText(task, text))}
           rows={2}
           className="w-full resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand-400"
         />

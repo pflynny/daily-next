@@ -404,6 +404,10 @@ export function DailyView() {
       <TaskDetailSheet
         task={detailTask}
         onClose={() => setDetailTask(null)}
+        onPasteText={(t, text) => {
+          updateTaskText(t, text);
+          setDetailTask({ ...t, text: text.split("\n")[0] });
+        }}
         onUpdate={(t, patch) => {
           updateTask(t, patch);
           setDetailTask((cur) => (cur ? { ...cur, ...patch } : cur));
