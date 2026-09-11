@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useAppData } from "@/state/AppDataProvider";
 import { newId } from "@/lib/utils/id";
+import { splitLines } from "@/lib/utils/pasteLines";
 import type { Task } from "@/types";
 
 export interface DayTasks {
@@ -66,6 +67,47 @@ export function useTasks() {
       return task.id;
     },
     [getDay, commitDay],
+  );
+
+  /** Add a pasted batch in one write so every item gets a distinct position. */
+  const addTaskLines = useCallback(
+    (dateKey: string, text: string) => {
+      const lines = splitLines(text);
+      if (!lines.length) return;
+      const { incomplete, completed } = getDay(dateKey);
+      const added = lines.map((text): Task => ({
+        id: newId(), date: dateKey, text, completed: false,
+        isLabel: false, notes: "", position: 0,
+      }));
+      commitDay(dateKey, [...incomplete, ...added, ...completed]);
+    },
+    [getDay, commitDay],
+  );
+
+  const updateTaskText = useCallback(
+    (task: Task, text: string) => {
+      const [first, ...rest] = splitLines(text);
+      if (!first) return;
+      if (!rest.length) {
+        put("tasks", [{ ...task, text: first }]);
+        return;
+      }
+      const { incomplete, completed } = getDay(task.date);
+      const updated = { ...task, text: first };
+      const added = rest.map((text): Task => ({
+        id: newId(), date: task.date, text, completed: false,
+        isLabel: false, notes: "", position: 0,
+      }));
+      const nextIncomplete = incomplete.flatMap((t) =>
+        t.id === task.id ? [updated, ...added] : [t],
+      );
+      if (task.completed) nextIncomplete.push(...added);
+      commitDay(task.date, [
+        ...nextIncomplete,
+        ...completed.map((t) => t.id === task.id ? updated : t),
+      ]);
+    },
+    [getDay, commitDay, put],
   );
 
   const toggleTask = useCallback(
@@ -144,6 +186,8 @@ export function useTasks() {
   return {
     getDay,
     addTask,
+    addTaskLines,
+    updateTaskText,
     toggleTask,
     updateTask,
     toggleLabel,

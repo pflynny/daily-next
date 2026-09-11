@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { pasteLines } from "@/lib/utils/pasteLines";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -141,6 +142,10 @@ export function ListColumn({
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onPaste={(e) => pasteLines(e, (text) => {
+              onAddItem(list.id, text);
+              setDraft("");
+            })}
             onKeyDown={(e) => {
               if (e.key === "Enter" && draft.trim()) { onAddItem(list.id, draft); setDraft(""); }
             }}

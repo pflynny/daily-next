@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { pasteLines } from "@/lib/utils/pasteLines";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils/cn";
@@ -119,6 +120,11 @@ export function TaskRow({
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onPaste={(e) => pasteLines(e, (text) => {
+              onUpdateText(task, text);
+              setDraft(text.split("\n")[0]);
+              setEditing(false);
+            })}
             onBlur={commit}
             onKeyDown={(e) => {
               if (e.key === "Enter") commit();
@@ -174,6 +180,11 @@ export function TaskRow({
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onPaste={(e) => pasteLines(e, (text) => {
+            onUpdateText(task, text);
+            setDraft(text.split("\n")[0]);
+            setEditing(false);
+          })}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") commit();

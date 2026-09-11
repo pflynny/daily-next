@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useAppData } from "@/state/AppDataProvider";
 import { buildListGroups } from "@/state/selectors";
 import { newId } from "@/lib/utils/id";
+import { splitLines } from "@/lib/utils/pasteLines";
 import type { List, ListGroup, ListItem } from "@/types";
 
 export function useLists() {
@@ -160,6 +161,42 @@ export function useLists() {
     [itemsOf, put],
   );
 
+  const addItemLines = useCallback(
+    (listId: string, text: string) => {
+      const lines = splitLines(text);
+      if (!lines.length) return;
+      const existing = itemsOf(listId);
+      const position = existing.reduce((max, item) => Math.max(max, item.position), -1) + 1;
+      const createdAt = new Date().toISOString();
+      put("listItems", lines.map((text, index) => ({
+        id: newId(), listId, text, completed: false, notes: "",
+        position: position + index, createdAt,
+      })));
+    },
+    [itemsOf, put],
+  );
+
+  const updateItemText = useCallback(
+    (item: ListItem, text: string) => {
+      const [first, ...rest] = splitLines(text);
+      if (!first) return;
+      if (!rest.length) {
+        put("listItems", [{ ...item, text: first }]);
+        return;
+      }
+      const createdAt = new Date().toISOString();
+      const added = rest.map((text): ListItem => ({
+        id: newId(), listId: item.listId, text, completed: false,
+        notes: "", position: 0, createdAt,
+      }));
+      const ordered = itemsOf(item.listId).flatMap((existing) =>
+        existing.id === item.id ? [{ ...item, text: first }, ...added] : [existing],
+      );
+      put("listItems", ordered.map((entry, position) => ({ ...entry, position })));
+    },
+    [itemsOf, put],
+  );
+
   const updateItem = useCallback(
     (item: ListItem, patch: Partial<ListItem>) => {
       put("listItems", [{ ...item, ...patch }]);
@@ -226,6 +263,8 @@ export function useLists() {
     moveListToGroup,
     itemsOf,
     addItem,
+    addItemLines,
+    updateItemText,
     updateItem,
     toggleItem,
     deleteItem,

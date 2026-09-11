@@ -63,7 +63,8 @@ export function DailyView() {
   const isDesktop = useIsDesktop();
   const {
     getDay,
-    addTask,
+    addTaskLines,
+    updateTaskText,
     toggleTask,
     updateTask,
     deleteTask,
@@ -309,9 +310,9 @@ export function DailyView() {
                   dateKey={key}
                   incomplete={incomplete}
                   completed={completed}
-                  onAdd={addTask}
+                  onAdd={addTaskLines}
                   onToggle={toggleTask}
-                  onUpdateText={(t, text) => updateTask(t, { text })}
+                  onUpdateText={updateTaskText}
                   onOpenDetail={setDetailTask}
                   onRepeat={setRepeatTask}
                   onDelete={handleDeleteTask}
@@ -347,9 +348,9 @@ export function DailyView() {
                     dateKey={mobileKey}
                     incomplete={incomplete}
                     completed={completed}
-                    onAdd={addTask}
+                    onAdd={addTaskLines}
                     onToggle={toggleTask}
-                    onUpdateText={(t, text) => updateTask(t, { text })}
+                    onUpdateText={updateTaskText}
                     onOpenDetail={setDetailTask}
                     onRepeat={setRepeatTask}
                     onDelete={handleDeleteTask}

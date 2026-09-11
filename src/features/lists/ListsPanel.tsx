@@ -253,11 +253,9 @@ export function ListsPanel() {
                 }
                 onMove={(id, dir) => lists.moveList(activeGroup.id, id, dir)}
                 onMoveToTab={moveListTo}
-                onAddItem={lists.addItem}
+                onAddItem={lists.addItemLines}
                 onToggleItem={lists.toggleItem}
-                onUpdateItemText={(item, text) =>
-                  lists.updateItem(item, { text })
-                }
+                onUpdateItemText={lists.updateItemText}
                 onOpenItem={setDetailItem}
                 onDeleteItem={(item) => {
                   const restore = lists.deleteItem(item.id);
