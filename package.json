@@ -3,7 +3,7 @@
   "version": "3.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 6202",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -22,7 +22,7 @@
     "@supabase/supabase-js": "^2.108.2",
     "heic2any": "^0.0.4",
     "html-to-image": "^1.11.13",
-    "next": "16.2.9",
+    "next": "16.3.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -38,7 +38,7 @@
     "@types/web-push": "^3.6.4",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
