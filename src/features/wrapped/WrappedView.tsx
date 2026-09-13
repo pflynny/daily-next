@@ -11,6 +11,7 @@ import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
 import { useFeelings } from "@/features/checkins/useFeelings";
 import { formatLongDate } from "@/lib/utils/date";
 import { useWrapped } from "./useWrapped";
+import { YearFilm } from "./film/YearFilm";
 import type { GarminYearSummary, PeaksYearSummary } from "@/types";
 
 const MONTH_LETTERS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
@@ -115,6 +116,7 @@ export function WrappedView() {
       </PageHeader>
 
       <Screen>
+        <div className="px-4"><YearFilm key={year} year={year} wrapped={w} /></div>
         <div ref={shotRef} className="mx-auto max-w-2xl space-y-4 p-4 pb-12">
           {/* Hero */}
           <section className="animate-fade-rise overflow-hidden rounded-3xl bg-brand-900 px-6 py-10 text-center text-brand-50">
