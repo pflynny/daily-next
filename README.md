@@ -51,6 +51,38 @@ npm run dev            # http://localhost:3000
 Uploads fall back to inline data URLs when R2 isn't configured, so the timeline
 still works locally.
 
+## Year films
+
+In **Wrapped**, choose a year and select **Make my year film**. The suggested
+draft samples memories across the months, favours milestones, and includes
+saved quotes and picks of the year. Explicit Markdown blockquotes in collection
+notes are also available in the scene picker.
+
+- Preview, reorder, remove or add scenes; choose video starting points and scene durations.
+- Choose landscape or portrait, 720p or 1080p. Films can be up to five minutes.
+- Feelings and gratitude are excluded unless you turn them on.
+- Optional music is selected from your device, faded in/out, and trimmed to the
+  film length. Short music tracks finish early. Video clips are muted; short
+  clips hold their final frame.
+- Select **Create MP4**, then **Download your film**. Rendering happens in your
+  browser using WebCodecs and Mediabunny. Keep the tab open; export can be cancelled.
+
+Export is enabled only when the device supports the required H.264 encoder
+(and AAC when music is selected). An up-to-date desktop Chrome or Edge is the
+initial testing target. Unsupported source videos, including some HEVC files,
+must be removed or replaced with compatible media; no transcoding service is
+configured. Preview uses the browser's native media decoder.
+
+Drafts are saved per account and year **on this device**, as media references
+and editing choices. They do not sync between devices. Music must be reselected
+after closing the editor. Downloads are never automatically uploaded or published.
+Review personal content and long text in the preview before sharing.
+
+The player and exporter share a timed canvas renderer. Private media requests
+remain authenticated, including byte-range requests used for video seeking.
+Run `npm test` for timeline-selection and byte-range regression tests alongside
+the existing data tests.
+
 ## Migrating data from the old app
 
 1. Sign up in this app so your account exists.

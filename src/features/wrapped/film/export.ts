@@ -70,14 +70,14 @@ export async function exportFilm(scenes: FilmScene[], options: {
     for (let index = 0; index < scenes.length; index++) {
       const scene = scenes[index];
       signal.throwIfAborted();
-      onProgress(frame / totalFrames, `Scene ${index + 1} of ${scenes.length}: ${scene.title.slice(0, 60)}`);
+      onProgress(frame / totalFrames * 0.95, `Scene ${index + 1} of ${scenes.length}: ${scene.title.slice(0, 60)}`);
       let image: HTMLImageElement | null = null;
       let iterator: AsyncGenerator<import("mediabunny").WrappedCanvas | null, void, unknown> | null = null;
       const frames = Math.round(scene.duration * 30);
       try {
         if (scene.kind === "image" && scene.url) image = await loadImage(scene.url, signal);
         if (scene.kind === "video" && scene.url) {
-          activeInput = new Input({ formats: ALL_FORMATS, source: new UrlSource(scene.url, { requestInit: { credentials: "same-origin" }, getRetryDelay: () => null, maxCacheSize: 16 * 1024 * 1024 }) });
+          activeInput = new Input({ formats: ALL_FORMATS, source: new UrlSource(scene.url, { requestInit: { credentials: "same-origin" }, getRetryDelay: () => null, maxCacheSize: 16 * 1024 * 1024, fetchFn: (url, init) => fetch(url, { ...init, signal: AbortSignal.any([signal, AbortSignal.timeout(30_000), ...(init?.signal ? [init.signal] : [])]) }) }) });
           const track = await activeInput.getPrimaryVideoTrack();
           if (!track || !await track.canDecode()) throw new Error("This video format cannot be decoded on this device. Replace it with a photo or a compatible video, or remove the scene.");
           const first = await track.getFirstTimestamp();
@@ -119,7 +119,6 @@ export async function exportFilm(scenes: FilmScene[], options: {
     return new Blob([output.target.buffer], { type: "video/mp4" });
   } finally {
     signal.removeEventListener("abort", abort);
-    activeInput?.dispose();
     if (!finished) await output.cancel().catch(() => {});
     canvas.width = canvas.height = 1;
   }

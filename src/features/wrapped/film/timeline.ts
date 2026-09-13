@@ -36,7 +36,7 @@ export function filmCandidates(year: number, memories: MemoryView[], collections
     const quotes = item.notes.match(/(?:^>[^\n]*(?:\n|$))+/gm) ?? [];
     quotes.forEach((quote, index) => scenes.push({ id: `book:${item.id}:${index}`, kind: "card", title: quote.replace(/^>\s?/gm, "").trim(), label: `${item.title}${item.creator ? ` · ${item.creator}` : ""}`, duration: 6, start: 0 }));
   }
-  wrapped.quotes.all.forEach((q, i) => scenes.push({ id: `quote:${i}`, kind: "card", title: `“${q.text}”`, label: q.author || "Words to keep", duration: 5, start: 0 }));
+  wrapped.quotes.all.forEach(q => scenes.push({ id: `quote:${q.id}`, kind: "card", title: `“${q.text}”`, label: q.author || "Words to keep", duration: 5, start: 0 }));
   wrapped.gratitude.entries.forEach((g, i) => scenes.push({ id: `gratitude:${g.date}:${i}`, kind: "card", title: g.text, label: "Grateful for", duration: 5, start: 0, personal: true }));
   if (wrapped.feelings.counts.length) scenes.push({ id: "feelings", kind: "card", title: wrapped.feelings.counts.slice(0, 5).map(([word]) => word).join(" · "), label: "How the year felt", duration: 5, start: 0, personal: true });
   return scenes;

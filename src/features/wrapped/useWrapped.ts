@@ -57,7 +57,7 @@ export interface WrappedData {
   quotes: {
     count: number;
     featured: { text: string; author: string } | null;
-    all: { text: string; author: string }[];
+    all: { id: string; text: string; author: string }[];
   };
   feelings: {
     /** days with at least one check-in */
@@ -261,7 +261,7 @@ export function useWrapped(year: number): WrappedData {
         featured: featured
           ? { text: featured.text, author: featured.author }
           : null,
-        all: yearQuotes.map((q) => ({ text: q.text, author: q.author })),
+        all: yearQuotes.map((q) => ({ id: q.id, text: q.text, author: q.author })),
       },
       feelings: {
         daysCheckedIn: checkedInDays.size,

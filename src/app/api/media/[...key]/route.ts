@@ -8,7 +8,7 @@ import { getObject } from "@/lib/storage/r2";
  * key to start with the caller's user id.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ key: string[] }> },
 ) {
   const { key } = await params;
@@ -31,15 +31,18 @@ export async function GET(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const obj = await getObject(keyStr);
+  const obj = await getObject(keyStr, request.headers.get("range"));
   if (!obj) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   return new NextResponse(obj.body, {
+    status: obj.status,
     headers: {
       "Content-Type": obj.contentType,
-      ...(obj.contentLength
+      "Accept-Ranges": "bytes",
+      ...(obj.contentRange ? { "Content-Range": obj.contentRange } : {}),
+      ...(obj.contentLength !== undefined
         ? { "Content-Length": String(obj.contentLength) }
         : {}),
       // Authentication must be checked on every request, including after logout.

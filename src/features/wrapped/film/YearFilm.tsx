@@ -64,27 +64,30 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(true);
   const [download, setDownload] = useState<string | null>(null);
-  const [supported, setSupported] = useState<boolean | null>(null);
+  const [support, setSupport] = useState<{ key: string; value: boolean } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const duration = filmDuration(scenes);
   const width = portrait ? Number(resolution) : resolution === "720" ? 1280 : 1920;
   const height = portrait ? resolution === "720" ? 1280 : 1920 : Number(resolution);
+  const supportKey = `${width}:${height}:${!!music}`;
+  const supported = support?.key === supportKey ? support.value : null;
   const available = candidates.filter(s => !scenes.some(x => x.id === s.id) && (personal || !s.personal));
 
   useEffect(() => {
     try {
       // Store only references and editing choices, never another copy of private media or captions.
       localStorage.setItem(storageKey, JSON.stringify({ version: 1, personal, portrait, motion, scenes: scenes.map(({ id, duration, start }) => ({ id, duration, start })) } satisfies SavedDraft));
+      // Report whether writing to external storage succeeded.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSaved(true);
     } catch { setSaved(false); }
   }, [storageKey, scenes, personal, portrait, motion]);
 
   useEffect(() => {
     let active = true;
-    setSupported(null);
-    import("./export").then(m => m.exportSupport(width, height, !!music)).then(value => { if (active) setSupported(value); }).catch(() => { if (active) setSupported(false); });
+    import("./export").then(m => m.exportSupport(width, height, !!music)).then(value => { if (active) setSupport({ key: supportKey, value }); }).catch(() => { if (active) setSupport({ key: supportKey, value: false }); });
     return () => { active = false; };
-  }, [width, height, music]);
+  }, [width, height, music, supportKey]);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => () => { if (download) URL.revokeObjectURL(download); }, [download]);
   useEffect(() => {
@@ -121,11 +124,11 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
     <div className="overflow-y-auto p-4 sm:p-6">
       {scenes.length > 0 && !busy && <FilmPlayer key={JSON.stringify(scenes.map(s => [s.id, s.duration, s.start]))} scenes={scenes} portrait={portrait} music={music} motion={motion} />}
       {busy && <div className="rounded-2xl bg-brand-900 p-10 text-center text-white"><p className="font-serif text-2xl">Making your film</p><p className="mt-3 text-sm">Keep this tab open while your film exports.</p><progress aria-label="Film export progress" max={1} value={progress} className="mt-4 w-full" /><p className="mt-2 text-sm" role="status">{message}</p><button className="mt-4 rounded-lg border border-white/40 px-4 py-2" onClick={() => controller.current?.abort()}>Cancel export</button></div>}
-      <fieldset disabled={busy} className="mt-5 space-y-4 disabled:opacity-50">
+      <fieldset disabled={busy} className="mt-5 min-w-0 space-y-4 disabled:opacity-50">
         <legend className="sr-only">Film options and scenes</legend>
         <div className="flex flex-wrap items-center gap-4 text-sm">
-          <label>Format <select className="ml-2 rounded-lg border border-line bg-surface p-2" value={portrait ? "portrait" : "landscape"} onChange={e => { setPortrait(e.target.value === "portrait"); setDownload(null); }}><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></label>
-          <label>Quality <select className="ml-2 rounded-lg border border-line bg-surface p-2" value={resolution} onChange={e => { setResolution(e.target.value); setDownload(null); }}><option value="720">720p</option><option value="1080">1080p</option></select></label>
+          <label>Format <select aria-label="Format" className="ml-2 rounded-lg border border-line bg-surface p-2" value={portrait ? "portrait" : "landscape"} onChange={e => { setPortrait(e.target.value === "portrait"); setDownload(null); }}><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select></label>
+          <label>Quality <select aria-label="Quality" className="ml-2 rounded-lg border border-line bg-surface p-2" value={resolution} onChange={e => { setResolution(e.target.value); setDownload(null); }}><option value="720">720p</option><option value="1080">1080p</option></select></label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={motion} onChange={e => { setMotion(e.target.checked); setDownload(null); }} />Gentle photo movement</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={personal} onChange={e => {
             const checked = e.target.checked; setPersonal(checked); setDownload(null);

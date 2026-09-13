@@ -3,9 +3,11 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { resolveByteRange } from "./byteRange";
 
 /**
  * Cloudflare R2 storage adapter (S3-compatible).
@@ -81,22 +83,35 @@ export async function createPresignedUpload(
 }
 
 /** Fetch an object for streaming to an authenticated user. */
-export async function getObject(key: string): Promise<{
-  body: ReadableStream;
+export async function getObject(key: string, rangeHeader: string | null = null): Promise<{
+  body: ReadableStream | null;
   contentType: string;
   contentLength?: number;
+  contentRange?: string;
+  status: 200 | 206 | 416;
 } | null> {
   const config = readConfig();
   if (!config) return null;
   try {
+    let range: string | undefined;
+    if (rangeHeader) {
+      const metadata = await getClient(config).send(new HeadObjectCommand({ Bucket: config.bucket, Key: key }));
+      if (metadata.ContentLength !== undefined) {
+        const resolved = resolveByteRange(rangeHeader, metadata.ContentLength);
+        if (resolved === "unsatisfiable") return { body: null, status: 416, contentType: metadata.ContentType ?? "application/octet-stream", contentRange: `bytes */${metadata.ContentLength}` };
+        if (resolved) range = `bytes=${resolved.start}-${resolved.end}`;
+      }
+    }
     const res = await getClient(config).send(
-      new GetObjectCommand({ Bucket: config.bucket, Key: key }),
+      new GetObjectCommand({ Bucket: config.bucket, Key: key, Range: range }),
     );
     if (!res.Body) return null;
     return {
       body: res.Body.transformToWebStream() as ReadableStream,
       contentType: res.ContentType ?? "application/octet-stream",
       contentLength: res.ContentLength,
+      contentRange: res.ContentRange,
+      status: res.ContentRange ? 206 : 200,
     };
   } catch {
     return null;
