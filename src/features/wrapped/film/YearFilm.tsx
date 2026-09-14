@@ -11,6 +11,27 @@ import { filmCandidates, filmDuration, makeFilm, MAX_FILM_SECONDS, type FilmScen
 
 const button = "rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-ink/5 disabled:opacity-40";
 
+function SceneThumbnail({ scene }: { scene: FilmScene }) {
+  if (scene.kind === "image" && scene.url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={scene.url} alt="" className="h-14 w-20 shrink-0 rounded-lg object-cover" />;
+  }
+  if (scene.kind === "video" && scene.url) {
+    return <video muted preload="metadata" src={scene.url} className="h-14 w-20 shrink-0 rounded-lg bg-brand-900 object-cover" aria-label="Video scene thumbnail" />;
+  }
+  return <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-brand-900 px-2 text-center font-serif text-xs text-brand-50">{scene.title.slice(0, 26)}</div>;
+}
+
+function FilmTimeline({ scenes }: { scenes: FilmScene[] }) {
+  const total = filmDuration(scenes);
+  return <div className="rounded-xl border border-line bg-surface p-3" aria-label="Film timeline">
+    <div className="flex h-9 gap-0.5 overflow-hidden rounded-lg bg-ink/5">
+      {scenes.map((scene, index) => <div key={scene.id} title={`${index + 1}. ${scene.title}`} className={`min-w-[4px] ${scene.kind === "image" ? "bg-brand-400" : scene.kind === "video" ? "bg-brand-700" : "bg-amber-500"}`} style={{ flexGrow: scene.duration }} />)}
+    </div>
+    <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wide text-faint"><span>Start</span><span>{scenes.length} scenes</span><span>{Math.ceil(total)} seconds</span></div>
+  </div>;
+}
+
 export function YearFilm({ year, wrapped }: { year: number; wrapped: WrappedData }) {
   const [open, setOpen] = useState(false);
   const data = useAppData();
@@ -147,9 +168,10 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
         <details className="rounded-xl border border-line p-3" open>
           <summary className="cursor-pointer text-sm font-semibold">Edit your scenes</summary>
           <p className="mt-2 text-xs text-muted">Choose the order and clip starting points. Short clips hold their final frame. Long text is fitted to the screen; check the preview before sharing.</p>
+          <FilmTimeline scenes={scenes} />
           <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {scenes.map((scene, i) => <li key={scene.id} className="rounded-xl bg-surface p-3">
-              <div className="flex items-start gap-3"><span className="pt-1 text-xs text-muted">{i + 1}</span><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-wide text-muted">{scene.kind} · {scene.label}</p><p className="truncate text-sm" title={scene.title}>{scene.title}</p></div><button className={button} aria-label={`Move scene ${i + 1} up`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button><button className={button} aria-label={`Move scene ${i + 1} down`} disabled={i === scenes.length - 1} onClick={() => move(i, 1)}>↓</button><button className={button} aria-label={`Remove scene ${i + 1}`} onClick={() => { setScenes(list => list.filter(s => s.id !== scene.id)); setDownload(null); }}>×</button></div>
+              <div className="flex items-start gap-3"><SceneThumbnail scene={scene} /><span className="pt-1 text-xs text-muted">{i + 1}</span><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-wide text-muted">{scene.kind} · {scene.label}</p><p className="truncate text-sm" title={scene.title}>{scene.title}</p></div><button className={button} aria-label={`Move scene ${i + 1} up`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button><button className={button} aria-label={`Move scene ${i + 1} down`} disabled={i === scenes.length - 1} onClick={() => move(i, 1)}>↓</button><button className={button} aria-label={`Remove scene ${i + 1}`} onClick={() => { setScenes(list => list.filter(s => s.id !== scene.id)); setDownload(null); }}>×</button></div>
               <div className="mt-2 flex flex-wrap gap-3 text-xs"><label>Seconds <input aria-label={`Scene ${i + 1} duration`} type="number" min={2} max={10} step={1} value={scene.duration} onChange={e => update(scene.id, { duration: Math.min(10, Math.max(2, Number(e.target.value) || 2)) })} className="w-16 rounded border border-line bg-paper p-1" /></label>{scene.kind === "video" && <label>Start at (seconds) <input aria-label={`Scene ${i + 1} clip start`} type="number" min={0} max={86400} step={0.5} value={scene.start} onChange={e => update(scene.id, { start: Math.max(0, Math.min(86400, Number(e.target.value) || 0)) })} className="w-20 rounded border border-line bg-paper p-1" /></label>}</div>
             </li>)}
           </ol>
