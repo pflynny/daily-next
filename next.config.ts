@@ -3,12 +3,12 @@ import type { NextConfig } from "next";
 const r2PublicHost = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST;
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["daily.dev.pflynny.com"],
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.r2.dev" },
-      ...(r2PublicHost
-        ? [{ protocol: "https" as const, hostname: r2PublicHost }]
-        : []),
+      ...(r2PublicHost ? [{ protocol: "https" as const, hostname: r2PublicHost }] : []),
     ],
   },
 };
