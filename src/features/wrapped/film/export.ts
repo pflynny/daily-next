@@ -31,8 +31,8 @@ export async function exportFilm(scenes: FilmScene[], options: {
   const duration = filmDuration(scenes);
   if (!scenes.length || duration > MAX_FILM_SECONDS) throw new Error("Keep your film under five minutes for browser export.");
   signal.throwIfAborted();
-  if (!await exportSupport(width, height, !!options.music)) throw new Error("MP4 export is unavailable on this device at this size. Try 720p in an up-to-date desktop Chrome or Edge browser.");
-  const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioBufferSource, Input, ALL_FORMATS, UrlSource, CanvasSink } = await import("mediabunny");
+  if (!await exportSupport(width, height, !!options.music || scenes.some(scene => scene.kind === "video"))) throw new Error("MP4 export is unavailable on this device at this size. Try 720p in an up-to-date desktop Chrome or Edge browser.");
+  const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioBufferSource, Input, ALL_FORMATS, UrlSource, CanvasSink, AudioBufferSink } = await import("mediabunny");
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const output = new Output({ format: new Mp4OutputFormat(), target: new BufferTarget() });
@@ -43,29 +43,14 @@ export async function exportFilm(scenes: FilmScene[], options: {
   signal.addEventListener("abort", abort);
   let finished = false;
   try {
-    let soundtrack: AudioBuffer | null = null;
-    let audioSource: InstanceType<typeof AudioBufferSource> | null = null;
-    if (options.music) {
-      onProgress(0, "Preparing your music…");
-      const context = new OfflineAudioContext(2, Math.ceil(duration * 48000), 48000);
-      const decoded = await context.decodeAudioData(await options.music.arrayBuffer());
-      signal.throwIfAborted();
-      const audio = context.createBufferSource();
-      audio.buffer = decoded;
-      const gain = context.createGain();
-      const end = Math.min(duration, decoded.duration);
-      gain.gain.setValueAtTime(0, 0);
-      gain.gain.linearRampToValueAtTime(0.8, Math.min(1, end / 3));
-      gain.gain.setValueAtTime(0.8, Math.max(end / 3, end - 2));
-      gain.gain.linearRampToValueAtTime(0, end);
-      audio.connect(gain).connect(context.destination);
-      audio.start();
-      soundtrack = await context.startRendering();
-      audioSource = new AudioBufferSource({ codec: "aac", bitrate: 128_000 });
-      output.addAudioTrack(audioSource);
-    }
+    const hasAudio = !!options.music || scenes.some(scene => scene.kind === "video");
+    const audioSource = hasAudio ? new AudioBufferSource({ codec: "aac", bitrate: 128_000 }) : null;
+    if (audioSource) output.addAudioTrack(audioSource);
+    const clipAudio: { buffer: AudioBuffer; timestamp: number; trim: number }[] = [];
+    let timelineOffset = 0;
     await output.start();
     let frame = 0;
+    let videoClipsWithAudio = 0;
     const totalFrames = scenes.reduce((n, s) => n + Math.round(s.duration * 30), 0);
     for (let index = 0; index < scenes.length; index++) {
       const scene = scenes[index];
@@ -98,6 +83,25 @@ export async function exportFilm(scenes: FilmScene[], options: {
             await new Promise(resolve => setTimeout(resolve, 0));
           }
         }
+        if (activeInput && scene.kind === "video" && scene.url) {
+          const audioTrack = await activeInput.getPrimaryAudioTrack();
+          if (audioTrack) {
+            if (!await audioTrack.canDecode()) throw new Error("This clip's video can be used, but its audio format cannot be decoded here. Convert the clip to AAC audio or remove it.");
+            const videoTrack = await activeInput.getPrimaryVideoTrack();
+            if (!videoTrack) throw new Error("This video could not be read for audio.");
+            const audioStart = await videoTrack.getFirstTimestamp() + scene.start;
+            const audioEnd = Math.min(await activeInput.computeDuration(), audioStart + scene.duration);
+            const audioSink = new AudioBufferSink(audioTrack);
+            const clipAudioStart = clipAudio.length;
+            for await (const sample of audioSink.buffers(audioStart, audioEnd)) {
+              signal.throwIfAborted();
+              const trim = Math.max(0, audioStart - sample.timestamp);
+              const timestamp = timelineOffset + Math.max(0, sample.timestamp - audioStart);
+              if (timestamp < timelineOffset + scene.duration && trim < sample.buffer.duration) clipAudio.push({ buffer: sample.buffer, timestamp, trim });
+            }
+            if (clipAudio.length > clipAudioStart) videoClipsWithAudio++;
+          }
+        }
       } catch (error) {
         if (signal.aborted) signal.throwIfAborted();
         throw new Error(`Scene ${index + 1} (${scene.title.slice(0, 60)}): ${error instanceof Error ? error.message : "Unable to render media."}`);
@@ -106,10 +110,42 @@ export async function exportFilm(scenes: FilmScene[], options: {
         activeInput?.dispose(); activeInput = null;
         if (image) image.src = "";
       }
+      timelineOffset += scene.duration;
     }
     source.close();
     signal.throwIfAborted();
-    if (soundtrack && audioSource) { onProgress(0.96, "Adding music…"); await audioSource.add(soundtrack); audioSource.close(); }
+    if (audioSource) {
+      onProgress(0.96, options.music ? `Mixing audio from ${videoClipsWithAudio} video clips with your music…` : `Adding audio from ${videoClipsWithAudio} video clips…`);
+      const context = new OfflineAudioContext(2, Math.ceil(duration * 48000), 48000);
+      const master = context.createDynamicsCompressor();
+      master.threshold.value = -8; master.ratio.value = 8; master.attack.value = 0.003; master.release.value = 0.15;
+      master.connect(context.destination);
+      for (const clip of clipAudio) {
+        const node = context.createBufferSource();
+        node.buffer = clip.buffer;
+        const gain = context.createGain(); gain.gain.value = 0.9;
+        node.connect(gain).connect(master);
+        node.start(clip.timestamp, clip.trim, Math.min(clip.buffer.duration - clip.trim, duration - clip.timestamp));
+      }
+      if (options.music) {
+        const decoded = await context.decodeAudioData(await options.music.arrayBuffer());
+        signal.throwIfAborted();
+        const audio = context.createBufferSource(); audio.buffer = decoded;
+        const gain = context.createGain();
+        const musicEnd = Math.min(duration, decoded.duration);
+        const fadeIn = Math.min(0.8, musicEnd / 4);
+        const fadeOut = Math.min(1.5, musicEnd / 3);
+        gain.gain.setValueAtTime(0, 0);
+        gain.gain.linearRampToValueAtTime(0.28, fadeIn);
+        gain.gain.setValueAtTime(0.28, Math.max(fadeIn, musicEnd - fadeOut));
+        gain.gain.linearRampToValueAtTime(0, musicEnd);
+        audio.connect(gain).connect(master);
+        audio.start(0, 0, musicEnd);
+      }
+      const soundtrack = await context.startRendering();
+      signal.throwIfAborted();
+      await audioSource.add(soundtrack); audioSource.close();
+    }
     signal.throwIfAborted();
     onProgress(0.98, "Finishing your film…");
     await output.finalize();

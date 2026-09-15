@@ -74,9 +74,11 @@ must be removed or replaced with compatible media; no transcoding service is
 configured. Preview uses the browser's native media decoder.
 
 Drafts are saved per account and year **on this device**, as media references
-and editing choices. They do not sync between devices. Music must be reselected
-after closing the editor. Downloads are never automatically uploaded or published.
-Review personal content and long text in the preview before sharing.
+and editing choices. They do not sync between devices. Private media is cached
+in a separate browser cache for each signed-in account (up to 256 MB) and purged
+on sign-out. Music must be reselected after closing the editor. Downloads are
+never automatically uploaded or published. Review personal content and long
+text in the preview before sharing.
 
 The player and exporter share a timed canvas renderer. Private media requests
 remain authenticated, including byte-range requests used for video seeking.

@@ -90,7 +90,8 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
   const duration = filmDuration(scenes);
   const width = portrait ? Number(resolution) : resolution === "720" ? 1280 : 1920;
   const height = portrait ? resolution === "720" ? 1280 : 1920 : Number(resolution);
-  const supportKey = `${width}:${height}:${!!music}`;
+  const hasVideo = scenes.some(scene => scene.kind === "video");
+  const supportKey = `${width}:${height}:${!!music}:${hasVideo}`;
   const supported = support?.key === supportKey ? support.value : null;
   const available = candidates.filter(s => !scenes.some(x => x.id === s.id) && (personal || !s.personal));
 
@@ -106,9 +107,9 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
 
   useEffect(() => {
     let active = true;
-    import("./export").then(m => m.exportSupport(width, height, !!music)).then(value => { if (active) setSupport({ key: supportKey, value }); }).catch(() => { if (active) setSupport({ key: supportKey, value: false }); });
+    import("./export").then(m => m.exportSupport(width, height, !!music || hasVideo)).then(value => { if (active) setSupport({ key: supportKey, value }); }).catch(() => { if (active) setSupport({ key: supportKey, value: false }); });
     return () => { active = false; };
-  }, [width, height, music, supportKey]);
+  }, [width, height, music, hasVideo, supportKey]);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => () => { if (download) URL.revokeObjectURL(download); }, [download]);
   useEffect(() => {
@@ -162,7 +163,7 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
             if (file && file.size > 30 * 1024 * 1024) { setError("Choose an audio file smaller than 30 MB."); e.target.value = ""; return; }
             setMusic(file); setDownload(null); setError("");
           }} /></label>
-          <p className="mt-2 text-xs text-muted">Choose music you have permission to use. It fades in and out; video clips are muted. Music stays in this tab and needs reselecting when you return.</p>
+          <p className="mt-2 text-xs text-muted">Video sound is included in the finished film; music fades in and out underneath it. Video clips are muted in the preview. Music stays in this tab and needs reselecting when you return.</p>
           {music && <button className="mt-2 underline" onClick={() => { setMusic(null); setDownload(null); }}>Remove music</button>}
         </div>
         <details className="rounded-xl border border-line p-3" open>

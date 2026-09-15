@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { getBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { clearAccountSnapshot, clearPrivateMediaCaches, readSnapshot, snapshotKey } from "@/lib/db/browserStorage";
+import { clearAccountSnapshot, clearPrivateMediaCaches, readSnapshot, setPrivateMediaCacheUser, snapshotKey } from "@/lib/db/browserStorage";
 import type { AuthUser } from "@/types";
 
 type AuthStatus = "loading" | "authed" | "signedout" | "guest";
@@ -25,6 +25,7 @@ interface AuthContextValue {
   configured: boolean;
   /** True when data should live in the cloud (configured + signed in). */
   cloud: boolean;
+  mediaCacheReady: boolean;
   signIn(email: string, password: string): Promise<ActionResult>;
   signUp(email: string, password: string): Promise<ActionResult>;
   signOut(): Promise<void>;
@@ -44,6 +45,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     configured ? "loading" : "guest",
   );
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [mediaCacheUserId, setMediaCacheUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    const userId = status === "authed" ? user?.id ?? null : null;
+    let active = true;
+    void (async () => {
+      await setPrivateMediaCacheUser(userId);
+      if (!userId) await clearPrivateMediaCaches();
+      if (active) setMediaCacheUserId(userId);
+    })().catch(console.error);
+    return () => { active = false; };
+  }, [status, user?.id]);
 
   useEffect(() => {
     if (!configured) return;
@@ -142,13 +156,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       configured,
       cloud: configured && status === "authed",
+      mediaCacheReady: status !== "authed" || mediaCacheUserId === user?.id,
       signIn,
       signUp,
       signOut,
       sendReset,
       updatePassword,
     }),
-    [status, user, configured, signIn, signUp, signOut, sendReset, updatePassword],
+    [status, user, configured, mediaCacheUserId, signIn, signUp, signOut, sendReset, updatePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

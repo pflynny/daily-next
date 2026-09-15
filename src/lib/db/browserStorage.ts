@@ -35,3 +35,27 @@ export async function clearPrivateMediaCaches() {
   const keys = await caches.keys();
   await Promise.all(keys.filter((key) => key.startsWith("daily-media-")).map((key) => caches.delete(key)));
 }
+
+/** Tell the service worker which signed-in account owns this tab's media cache. */
+export async function setPrivateMediaCacheUser(userId: string | null) {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const worker = navigator.serviceWorker.controller ?? registration.active;
+    if (!worker) return;
+    await new Promise<void>((resolve) => {
+      const channel = new MessageChannel();
+      const timeout = window.setTimeout(finish, 2500);
+      function finish() {
+        window.clearTimeout(timeout);
+        channel.port1.close();
+        channel.port2.close();
+        resolve();
+      }
+      channel.port1.onmessage = finish;
+      worker.postMessage({ type: "MEDIA_SESSION", userId }, [channel.port2]);
+    });
+  } catch {
+    // Media caching is an optimization; network requests remain authenticated.
+  }
+}
