@@ -15,6 +15,8 @@ export interface FilmScene {
 }
 
 export const MAX_FILM_SECONDS = 300;
+export const MAX_VIDEO_SCENES = 8;
+export const DEFAULT_VIDEO_SECONDS = 5;
 export const filmDuration = (scenes: FilmScene[]) => scenes.reduce((n, s) => n + s.duration, 0);
 export const monthLabel = (date: string) => new Date(`${date.slice(0, 7)}-15T12:00:00`).toLocaleDateString("en-GB", { month: "long" });
 
@@ -59,10 +61,20 @@ export function makeFilm(year: number, candidates: FilmScene[], personal = false
   }
   selected.push(...candidates.filter(s => !s.date && !s.personal).sort((a, b) => Number(!!b.priority) - Number(!!a.priority)).slice(0, 4));
   if (personal) selected.push(...candidates.filter(s => s.personal).slice(-3));
-  if (!selected.length) return [];
+  // A few short clips give the film rhythm without making every export fetch
+  // dozens of large source files.
+  let videoCount = 0;
+  const capped = selected.filter(scene => {
+    if (scene.kind !== "video") return true;
+    if (videoCount >= MAX_VIDEO_SCENES) return false;
+    videoCount++;
+    scene.duration = Math.min(scene.duration, DEFAULT_VIDEO_SECONDS);
+    return true;
+  });
+  if (!capped.length) return [];
   return [
     { id: "intro", kind: "card", title: String(year), label: "A year to remember", duration: 3, start: 0 },
-    ...selected,
+    ...capped,
     { id: "outro", kind: "card", title: "Here's to the moments we kept.", label: String(year), duration: 4, start: 0 },
   ];
 }

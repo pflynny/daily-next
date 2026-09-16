@@ -100,7 +100,7 @@ export function FilmPlayer({ scenes, portrait, music, motion }: { scenes: FilmSc
   }, []);
 
   return <div ref={container} className="rounded-2xl bg-[#172e27] p-3 text-white">
-    <canvas ref={canvas} width={portrait ? 720 : 1280} height={portrait ? 1280 : 720} aria-label={scene ? `${scene.label}: ${scene.title}` : "Year film preview"} className={`mx-auto max-h-[55dvh] max-w-full ${portrait ? "aspect-[9/16]" : "aspect-video w-full"}`} />
+    <canvas ref={canvas} width={portrait ? 360 : 640} height={portrait ? 640 : 360} aria-label={scene ? `${scene.label}: ${scene.title}` : "Year film preview"} className={`mx-auto max-h-[55dvh] max-w-full ${portrait ? "aspect-[9/16]" : "aspect-video w-full"}`} />
     {!ready && !error && <p className="py-2 text-center text-sm" role="status">Loading scene…</p>}
     {error && <p className="py-2 text-sm text-amber-200" role="alert">{error}</p>}
     <div className="mt-3 flex items-center gap-3 text-sm">

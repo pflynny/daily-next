@@ -7,7 +7,7 @@ import { buildMemories } from "@/state/selectors";
 import { Modal } from "@/shared/ui/Modal";
 import type { WrappedData } from "../useWrapped";
 import { FilmPlayer } from "./FilmPlayer";
-import { filmCandidates, filmDuration, makeFilm, MAX_FILM_SECONDS, type FilmScene } from "./timeline";
+import { filmCandidates, filmDuration, makeFilm, MAX_FILM_SECONDS, MAX_VIDEO_SCENES, type FilmScene } from "./timeline";
 
 const button = "rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-ink/5 disabled:opacity-40";
 
@@ -91,9 +91,10 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
   const width = portrait ? Number(resolution) : resolution === "720" ? 1280 : 1920;
   const height = portrait ? resolution === "720" ? 1280 : 1920 : Number(resolution);
   const hasVideo = scenes.some(scene => scene.kind === "video");
+  const videoCount = scenes.filter(scene => scene.kind === "video").length;
   const supportKey = `${width}:${height}:${!!music}:${hasVideo}`;
   const supported = support?.key === supportKey ? support.value : null;
-  const available = candidates.filter(s => !scenes.some(x => x.id === s.id) && (personal || !s.personal));
+  const available = candidates.filter(s => !scenes.some(x => x.id === s.id) && (personal || !s.personal) && (s.kind !== "video" || videoCount < MAX_VIDEO_SCENES));
 
   useEffect(() => {
     try {
@@ -126,6 +127,10 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
   }
   async function render() {
     if (busy) return;
+    if (videoCount > MAX_VIDEO_SCENES) {
+      setError(`Keep the film to ${MAX_VIDEO_SCENES} video clips or fewer for a fast export.`);
+      return;
+    }
     const abort = new AbortController(); controller.current = abort;
     setBusy(true); setError(""); setDownload(null); setProgress(0); setMessage("Checking your film…");
     try {
@@ -173,7 +178,7 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
           <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {scenes.map((scene, i) => <li key={scene.id} className="rounded-xl bg-surface p-3">
               <div className="flex items-start gap-3"><SceneThumbnail scene={scene} /><span className="pt-1 text-xs text-muted">{i + 1}</span><div className="min-w-0 flex-1"><p className="text-[10px] uppercase tracking-wide text-muted">{scene.kind} · {scene.label}</p><p className="truncate text-sm" title={scene.title}>{scene.title}</p></div><button className={button} aria-label={`Move scene ${i + 1} up`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button><button className={button} aria-label={`Move scene ${i + 1} down`} disabled={i === scenes.length - 1} onClick={() => move(i, 1)}>↓</button><button className={button} aria-label={`Remove scene ${i + 1}`} onClick={() => { setScenes(list => list.filter(s => s.id !== scene.id)); setDownload(null); }}>×</button></div>
-              <div className="mt-2 flex flex-wrap gap-3 text-xs"><label>Seconds <input aria-label={`Scene ${i + 1} duration`} type="number" min={2} max={10} step={1} value={scene.duration} onChange={e => update(scene.id, { duration: Math.min(10, Math.max(2, Number(e.target.value) || 2)) })} className="w-16 rounded border border-line bg-paper p-1" /></label>{scene.kind === "video" && <label>Start at (seconds) <input aria-label={`Scene ${i + 1} clip start`} type="number" min={0} max={86400} step={0.5} value={scene.start} onChange={e => update(scene.id, { start: Math.max(0, Math.min(86400, Number(e.target.value) || 0)) })} className="w-20 rounded border border-line bg-paper p-1" /></label>}</div>
+              <div className="mt-2 flex flex-wrap gap-3 text-xs"><label>Seconds <input aria-label={`Scene ${i + 1} duration`} type="number" min={2} max={scene.kind === "video" ? 6 : 10} step={1} value={scene.duration} onChange={e => update(scene.id, { duration: Math.min(scene.kind === "video" ? 6 : 10, Math.max(2, Number(e.target.value) || 2)) })} className="w-16 rounded border border-line bg-paper p-1" /></label>{scene.kind === "video" && <label>Start at (seconds) <input aria-label={`Scene ${i + 1} clip start`} type="number" min={0} max={86400} step={0.5} value={scene.start} onChange={e => update(scene.id, { start: Math.max(0, Math.min(86400, Number(e.target.value) || 0)) })} className="w-20 rounded border border-line bg-paper p-1" /></label>}</div>
             </li>)}
           </ol>
           <div className="mt-3 flex gap-2"><select aria-label="Memory or quote to add" className="min-w-0 flex-1 rounded-lg border border-line bg-surface p-2 text-sm" value={addId} onChange={e => setAddId(e.target.value)}><option value="">Add a memory or quote…</option>{available.map(s => <option key={s.id} value={s.id}>{s.label} — {s.title.slice(0, 80)}</option>)}</select><button className={button} disabled={!available.some(s => s.id === addId)} onClick={() => { const scene = available.find(s => s.id === addId); if (scene) { setScenes(list => [...list.filter(s => s.id !== "outro"), scene, ...list.filter(s => s.id === "outro")]); setAddId(""); setDownload(null); } }}>Add scene</button></div>
@@ -181,9 +186,10 @@ function FilmEditor({ year, candidates, account, onClose }: { year: number; cand
         </details>
       </fieldset>
       {duration > MAX_FILM_SECONDS && <p className="mt-3 text-sm text-amber-800">Shorten your film to five minutes or less to export.</p>}
+      {videoCount > MAX_VIDEO_SCENES && <p className="mt-3 text-sm text-amber-800">Remove video clips until there are {MAX_VIDEO_SCENES} or fewer. This keeps loading and export manageable.</p>}
       {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {!busy && <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button className="rounded-xl bg-brand-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40" disabled={!supported || !scenes.length || duration > MAX_FILM_SECONDS} onClick={render}>{supported === null ? "Checking export support…" : "Create MP4"}</button>
+        <button className="rounded-xl bg-brand-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40" disabled={!supported || !scenes.length || duration > MAX_FILM_SECONDS || videoCount > MAX_VIDEO_SCENES} onClick={render}>{supported === null ? "Checking export support…" : "Create MP4"}</button>
         {download && <a href={download} download={`daily-year-film-${year}.mp4`} className="rounded-xl bg-brand-100 px-5 py-3 text-sm font-semibold text-brand-900">Download your film</a>}
         <p className="text-xs text-muted">{supported === false ? "MP4 export is unavailable at this size on this device. Try 720p or desktop Chrome/Edge. You can still preview your film." : "Rendered on your device. Nothing is published or uploaded."}</p>
         {message && !download && <p role="status" className="w-full text-sm text-muted">{message}</p>}

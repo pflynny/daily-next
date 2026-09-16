@@ -44,9 +44,14 @@ npm run dev            # http://localhost:3000
 ### 2. Cloudflare R2 (media)
 
 1. Create an R2 bucket and an S3 API token (access key + secret).
-2. Enable public access (an `r2.dev` URL or a custom domain).
+2. Keep the bucket private and create an R2 S3 API token with object read/write access.
 3. Fill `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
    `R2_ENDPOINT`, and `NEXT_PUBLIC_R2_PUBLIC_HOST` in `.env`.
+4. Configure the bucket's CORS policy for your app origin (for example
+   `https://daily.dev.pflynny.com`) with `GET` and `HEAD` methods and expose
+   `Content-Length`, `Content-Range`, and `Accept-Ranges`. Media downloads are
+   authenticated by the app, then redirected to a one-hour signed R2 URL so
+   the file bytes bypass Vercel Compute and its Fast Origin Transfer meter.
 
 Uploads fall back to inline data URLs when R2 isn't configured, so the timeline
 still works locally.

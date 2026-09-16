@@ -133,6 +133,7 @@ export function MemoryCard({
                     key={m.id}
                     src={m.url}
                     controls
+                    preload="metadata"
                     className="w-full rounded-lg border border-line bg-ink/5"
                   />
                 ) : onViewImage ? (

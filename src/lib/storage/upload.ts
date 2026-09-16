@@ -6,6 +6,7 @@ export type UploadedMedia = Pick<
 >;
 
 const LOCAL_FALLBACK_LIMIT = 8 * 1024 * 1024; // 8 MB
+const MAX_IMAGE_EDGE = 1800;
 
 const HEIC_EXT = /\.(heic|heif)$/i;
 
@@ -109,6 +110,36 @@ function readDataUrl(file: File): Promise<string> {
   });
 }
 
+/** Keep the timeline responsive by storing a display-sized JPEG, not the
+ * original multi-megapixel camera file. */
+async function optimiseImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") return file;
+  const dimensions = await getImageSize(file);
+  const width = dimensions.width ?? 0;
+  const height = dimensions.height ?? 0;
+  if (Math.max(width, height) <= MAX_IMAGE_EDGE) return file;
+  const scale = MAX_IMAGE_EDGE / Math.max(width, height);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("Could not resize image"));
+      element.src = url;
+    });
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.84));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(url);
+    canvas.width = canvas.height = 1;
+  }
+}
+
 /**
  * Upload a media file. Uses Cloudflare R2 (via a presigned PUT) when storage
  * is configured and the user is signed in; otherwise falls back to an inline
@@ -118,7 +149,9 @@ export async function uploadMedia(input: File): Promise<UploadedMedia> {
   const kind: "image" | "video" = input.type.startsWith("video")
     ? "video"
     : "image";
-  const file = kind === "image" && isHeic(input) ? await heicToJpeg(input) : input;
+  const file = kind === "image"
+    ? await optimiseImage(isHeic(input) ? await heicToJpeg(input) : input)
+    : input;
   const dims =
     kind === "video" ? await getVideoSize(file) : await getImageSize(file);
 

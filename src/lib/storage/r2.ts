@@ -82,6 +82,21 @@ export async function createPresignedUpload(
   return { uploadUrl, publicUrl: mediaUrl(key) };
 }
 
+/** Create a short-lived read URL so large media bypasses Vercel Compute. */
+export async function createPresignedDownload(key: string): Promise<string | null> {
+  const config = readConfig();
+  if (!config) return null;
+  try {
+    return await getSignedUrl(
+      getClient(config),
+      new GetObjectCommand({ Bucket: config.bucket, Key: key }),
+      { expiresIn: 60 * 60 },
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** Fetch an object for streaming to an authenticated user. */
 export async function getObject(key: string, rangeHeader: string | null = null): Promise<{
   body: ReadableStream | null;

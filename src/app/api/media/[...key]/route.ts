@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabase/server";
-import { getObject } from "@/lib/storage/r2";
+import { createPresignedDownload, getObject } from "@/lib/storage/r2";
 
 /**
  * Authenticated media serving for the private R2 bucket. Object keys are
@@ -29,6 +29,19 @@ export async function GET(
   }
   if (!keyStr.startsWith(`${user.id}/`)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Send the browser directly to R2 for large media. The auth and ownership
+  // checks above still run first, while the bytes no longer pass through
+  // Vercel Compute (and therefore do not consume Fast Origin Transfer).
+  const downloadUrl = await createPresignedDownload(keyStr);
+  if (downloadUrl) {
+    return NextResponse.redirect(downloadUrl, {
+      status: 302,
+      // Do not cache the redirect: after sign-out, a browser must not reuse a
+      // still-valid signed URL without passing the auth check again.
+      headers: { "Cache-Control": "private, no-store" },
+    });
   }
 
   const obj = await getObject(keyStr, request.headers.get("range"));
