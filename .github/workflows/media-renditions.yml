@@ -1,0 +1,36 @@
+# Nightly media processing: 720p renditions + posters for new videos and
+# thumbnails for new photos. Idempotent — only touches media missing them.
+# Run on demand from the Actions tab via "Run workflow".
+name: Media renditions
+
+on:
+  schedule:
+    - cron: "23 2 * * *" # 02:23 UTC daily
+  workflow_dispatch:
+
+concurrency:
+  group: media-renditions
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Photo thumbnails
+        run: npm run backfill-thumbs
+      - name: Video posters + 720p renditions
+        run: npm run backfill-video
