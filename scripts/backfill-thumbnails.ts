@@ -7,9 +7,13 @@
  *   npm run backfill-thumbs -- --dry   # report only
  *
  * Needs R2_ENDPOINT / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET and
- * SUPABASE_SERVICE_ROLE_KEY in .env (pull with `npx vercel env pull`).
+ * SUPABASE_SERVICE_ROLE_KEY in .env.local / .env
+ * (pull with `npx vercel env pull .env.local --environment=production`).
  */
-import "dotenv/config";
+import { config } from "dotenv";
+// `vercel env pull` writes .env.local; fall back to .env for anything else.
+config({ path: ".env.local" });
+config({ path: ".env" });
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
