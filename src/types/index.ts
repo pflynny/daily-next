@@ -146,6 +146,8 @@ export interface MemoryMedia {
   kind: "image" | "video";
   url: string;
   key: string; // storage object key
+  /** ~800px JPEG for cards/timeline; null for videos and un-migrated photos. */
+  thumbKey: string | null;
   width: number | null;
   height: number | null;
   mime: string;

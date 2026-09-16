@@ -11,6 +11,7 @@ import { DailyHeatmap } from "@/features/goals/DailyHeatmap";
 import { useFeelings } from "@/features/checkins/useFeelings";
 import { formatLongDate } from "@/lib/utils/date";
 import { useWrapped } from "./useWrapped";
+import { displayUrl } from "@/lib/storage/media";
 import { YearFilm } from "./film/YearFilm";
 import type { GarminYearSummary, PeaksYearSummary } from "@/types";
 
@@ -152,7 +153,7 @@ export function WrappedView() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         key={m.id}
-                        src={img.url}
+                        src={displayUrl(img)}
                         alt=""
                         loading="lazy"
                         className="aspect-square w-full rounded-lg border border-line object-cover"

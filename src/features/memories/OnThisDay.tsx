@@ -6,6 +6,7 @@ import { todayKey } from "@/lib/utils/date";
 import { ImagesIcon, StarIcon } from "@/shared/ui/icons";
 import { useCheckIns } from "@/features/checkins/useCheckIns";
 import { useMemories } from "./useMemories";
+import { displayUrl } from "@/lib/storage/media";
 
 /** Memories and gratitudes from this date in earlier years — a quiet strip
  *  under the daily header. Renders nothing when there's nothing. */
@@ -25,7 +26,7 @@ export function OnThisDay() {
         year: Number(m.occurredOn.slice(0, 4)),
         kind: "memory" as const,
         text: m.title || m.body || m.quoteAuthor || "Memory",
-        photo: m.media.find((x) => x.kind === "image")?.url ?? null,
+        photo: (() => { const img = m.media.find((x) => x.kind === "image"); return img ? displayUrl(img) : null; })(),
         milestone: m.milestone,
       }));
     const gratitudes = checkIns

@@ -22,14 +22,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { filename?: string; contentType?: string; size?: number };
+  let body: { filename?: string; contentType?: string; size?: number; variant?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
-  const { filename, contentType, size } = body;
+  const { filename, contentType, size, variant } = body;
   if (!contentType || !ALLOWED.test(contentType)) {
     return NextResponse.json({ error: "unsupported_type" }, { status: 400 });
   }
@@ -42,7 +42,12 @@ export async function POST(request: Request) {
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 8);
   const year = new Date().getFullYear();
-  const key = `${user.id}/${year}/${newId()}${ext ? `.${ext}` : ""}`;
+  // Thumbnails carry a recognisable suffix so the media route can stream
+  // and cache them (small) while redirecting originals straight to R2.
+  const key =
+    variant === "thumb"
+      ? `${user.id}/${year}/${newId()}-thumb.jpg`
+      : `${user.id}/${year}/${newId()}${ext ? `.${ext}` : ""}`;
 
   const presigned = await createPresignedUpload(key, contentType);
   if (!presigned) {

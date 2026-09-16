@@ -27,3 +27,32 @@ export async function getServerClient(): Promise<SupabaseClient | null> {
     },
   });
 }
+
+/** Verified tokens → user id, so a page full of media requests doesn't pay
+ *  a Supabase Auth round-trip per image. Entries are only created after a
+ *  successful server-side verification and expire with the token. */
+const verifiedTokens = new Map<string, { userId: string; until: number }>();
+const VERIFY_TTL_MS = 10 * 60 * 1000;
+
+export async function getVerifiedUserId(): Promise<string | null> {
+  const supabase = await getServerClient();
+  if (!supabase) return null;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return null;
+  const hit = verifiedTokens.get(token);
+  if (hit && hit.until > Date.now()) return hit.userId;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser(token);
+  if (!user) return null;
+  const tokenExpiry = session.expires_at ? session.expires_at * 1000 : Infinity;
+  verifiedTokens.set(token, {
+    userId: user.id,
+    until: Math.min(tokenExpiry, Date.now() + VERIFY_TTL_MS),
+  });
+  if (verifiedTokens.size > 500) verifiedTokens.clear();
+  return user.id;
+}

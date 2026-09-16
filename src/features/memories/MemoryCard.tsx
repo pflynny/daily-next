@@ -12,6 +12,7 @@ import {
   TrashIcon,
   VideoIcon,
 } from "@/shared/ui/icons";
+import { displayUrl } from "@/lib/storage/media";
 import type { MemoryView } from "@/types";
 
 const TYPE_ICON = {
@@ -145,7 +146,7 @@ export function MemoryCard({
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={m.url}
+                      src={displayUrl(m)}
                       alt=""
                       loading="lazy"
                       style={
@@ -163,7 +164,7 @@ export function MemoryCard({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={m.id}
-                    src={m.url}
+                    src={displayUrl(m)}
                     alt=""
                     loading="lazy"
                     style={

@@ -2,11 +2,12 @@ import type { MemoryMedia } from "@/types";
 
 export type UploadedMedia = Pick<
   MemoryMedia,
-  "kind" | "url" | "key" | "width" | "height" | "mime" | "size"
+  "kind" | "url" | "key" | "thumbKey" | "width" | "height" | "mime" | "size"
 >;
 
 const LOCAL_FALLBACK_LIMIT = 8 * 1024 * 1024; // 8 MB
 const MAX_IMAGE_EDGE = 1800;
+const THUMB_EDGE = 800;
 
 const HEIC_EXT = /\.(heic|heif)$/i;
 
@@ -140,6 +141,45 @@ async function optimiseImage(file: File): Promise<File> {
   }
 }
 
+/** Display-size JPEG for cards and the timeline (the original stays for
+ *  the lightbox and film export). */
+async function makeThumb(file: File): Promise<File | null> {
+  if (!file.type.startsWith("image/")) return null;
+  const url = URL.createObjectURL(file);
+  const canvas = document.createElement("canvas");
+  try {
+    const image = await new Promise<HTMLImageElement | null>((resolve) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => resolve(null);
+      el.src = url;
+    });
+    if (!image) return null;
+    const scale = Math.min(1, THUMB_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+    return blob ? new File([blob], "thumb.jpg", { type: "image/jpeg" }) : null;
+  } finally {
+    URL.revokeObjectURL(url);
+    canvas.width = canvas.height = 1;
+  }
+}
+
+async function presignAndPut(file: File, variant?: "thumb"): Promise<{ key: string; publicUrl: string } | null> {
+  const res = await fetch("/api/uploads/presign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, variant }),
+  });
+  if (!res.ok) return null;
+  const { uploadUrl, publicUrl, key } = (await res.json()) as { uploadUrl: string; publicUrl: string; key: string };
+  const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  if (!put.ok) throw new Error("Upload failed");
+  return { key, publicUrl };
+}
+
 /**
  * Upload a media file. Uses Cloudflare R2 (via a presigned PUT) when storage
  * is configured and the user is signed in; otherwise falls back to an inline
@@ -156,32 +196,23 @@ export async function uploadMedia(input: File): Promise<UploadedMedia> {
     kind === "video" ? await getVideoSize(file) : await getImageSize(file);
 
   try {
-    const res = await fetch("/api/uploads/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      }),
-    });
-
-    if (res.ok) {
-      const { uploadUrl, publicUrl, key } = (await res.json()) as {
-        uploadUrl: string;
-        publicUrl: string;
-        key: string;
-      };
-      const put = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-      if (!put.ok) throw new Error("Upload failed");
+    const main = await presignAndPut(file);
+    if (main) {
+      // Thumbnail failures must never lose the upload itself.
+      let thumbKey: string | null = null;
+      if (kind === "image") {
+        try {
+          const thumb = await makeThumb(file);
+          thumbKey = thumb ? (await presignAndPut(thumb, "thumb"))?.key ?? null : null;
+        } catch {
+          thumbKey = null;
+        }
+      }
       return {
         kind,
-        url: publicUrl,
-        key,
+        url: main.publicUrl,
+        key: main.key,
+        thumbKey,
         mime: file.type,
         size: file.size,
         ...dims,
@@ -201,6 +232,7 @@ export async function uploadMedia(input: File): Promise<UploadedMedia> {
     kind,
     url: dataUrl,
     key: `local:${file.name}`,
+    thumbKey: null,
     mime: file.type,
     size: file.size,
     ...dims,

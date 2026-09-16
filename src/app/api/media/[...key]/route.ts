@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerClient } from "@/lib/supabase/server";
+import { getVerifiedUserId } from "@/lib/supabase/server";
 import { createPresignedDownload, getObject } from "@/lib/storage/r2";
 
 /**
@@ -17,30 +17,29 @@ export async function GET(
     return NextResponse.json({ error: "bad_key" }, { status: 400 });
   }
 
-  const supabase = await getServerClient();
-  if (!supabase) {
-    return NextResponse.json({ error: "auth_unavailable" }, { status: 503 });
-  }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!keyStr.startsWith(`${user.id}/`)) {
+  if (!keyStr.startsWith(`${userId}/`)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+
+  // Thumbnails are small and immutable: stream them same-origin so the
+  // browser and service worker can cache them (a cross-origin redirect
+  // would be opaque to the service worker and never cached).
+  const isThumb = keyStr.endsWith("-thumb.jpg");
 
   // Send the browser directly to R2 for large media. The auth and ownership
   // checks above still run first, while the bytes no longer pass through
   // Vercel Compute (and therefore do not consume Fast Origin Transfer).
-  const downloadUrl = await createPresignedDownload(keyStr);
+  const downloadUrl = isThumb ? null : await createPresignedDownload(keyStr);
   if (downloadUrl) {
     return NextResponse.redirect(downloadUrl, {
       status: 302,
-      // Do not cache the redirect: after sign-out, a browser must not reuse a
-      // still-valid signed URL without passing the auth check again.
-      headers: { "Cache-Control": "private, no-store" },
+      // Private, short-lived: scrolling back doesn't re-run auth, while the
+      // signed URL itself expires within the hour regardless.
+      headers: { "Cache-Control": "private, max-age=300" },
     });
   }
 
@@ -58,8 +57,9 @@ export async function GET(
       ...(obj.contentLength !== undefined
         ? { "Content-Length": String(obj.contentLength) }
         : {}),
-      // Authentication must be checked on every request, including after logout.
-      "Cache-Control": "private, no-store",
+      // Thumbnails have immutable keys → cache hard (per user/browser);
+      // originals only reach this path when presigning is unavailable.
+      "Cache-Control": isThumb ? "private, max-age=31536000, immutable" : "private, no-store",
       "Vary": "Cookie",
     },
   });
