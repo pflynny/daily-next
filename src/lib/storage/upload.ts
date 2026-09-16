@@ -2,7 +2,7 @@ import type { MemoryMedia } from "@/types";
 
 export type UploadedMedia = Pick<
   MemoryMedia,
-  "kind" | "url" | "key" | "thumbKey" | "width" | "height" | "mime" | "size"
+  "kind" | "url" | "key" | "thumbKey" | "webKey" | "width" | "height" | "mime" | "size"
 >;
 
 const LOCAL_FALLBACK_LIMIT = 8 * 1024 * 1024; // 8 MB
@@ -167,6 +167,43 @@ async function makeThumb(file: File): Promise<File | null> {
   }
 }
 
+/** First-frame poster for a video so cards render without downloading
+ *  any of the video. Returns null when the browser can't decode it. */
+async function makePoster(file: File): Promise<File | null> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  const canvas = document.createElement("canvas");
+  try {
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src = url;
+    const ok = await new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => resolve(false), 8000);
+      video.onerror = () => { clearTimeout(timer); resolve(false); };
+      video.onloadeddata = () => {
+        // nudge past the first (often black) frame
+        video.currentTime = Math.min(0.5, (video.duration || 1) / 4);
+      };
+      video.onseeked = () => { clearTimeout(timer); resolve(true); };
+    });
+    if (!ok || !video.videoWidth) return null;
+    const scale = Math.min(1, THUMB_EDGE / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+    return blob ? new File([blob], "poster.jpg", { type: "image/jpeg" }) : null;
+  } catch {
+    return null;
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(url);
+    canvas.width = canvas.height = 1;
+  }
+}
+
 async function presignAndPut(file: File, variant?: "thumb"): Promise<{ key: string; publicUrl: string } | null> {
   const res = await fetch("/api/uploads/presign", {
     method: "POST",
@@ -198,21 +235,21 @@ export async function uploadMedia(input: File): Promise<UploadedMedia> {
   try {
     const main = await presignAndPut(file);
     if (main) {
-      // Thumbnail failures must never lose the upload itself.
+      // Thumbnail/poster failures must never lose the upload itself.
       let thumbKey: string | null = null;
-      if (kind === "image") {
-        try {
-          const thumb = await makeThumb(file);
-          thumbKey = thumb ? (await presignAndPut(thumb, "thumb"))?.key ?? null : null;
-        } catch {
-          thumbKey = null;
-        }
+      try {
+        const thumb = kind === "image" ? await makeThumb(file) : await makePoster(file);
+        thumbKey = thumb ? (await presignAndPut(thumb, "thumb"))?.key ?? null : null;
+      } catch {
+        thumbKey = null;
       }
       return {
         kind,
         url: main.publicUrl,
         key: main.key,
         thumbKey,
+        // 720p renditions are made by the Mac-side backfill (npm run backfill-video).
+        webKey: null,
         mime: file.type,
         size: file.size,
         ...dims,
@@ -233,6 +270,7 @@ export async function uploadMedia(input: File): Promise<UploadedMedia> {
     url: dataUrl,
     key: `local:${file.name}`,
     thumbKey: null,
+    webKey: null,
     mime: file.type,
     size: file.size,
     ...dims,

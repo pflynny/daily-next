@@ -12,7 +12,7 @@ import {
   TrashIcon,
   VideoIcon,
 } from "@/shared/ui/icons";
-import { displayUrl } from "@/lib/storage/media";
+import { displayUrl, playbackUrl } from "@/lib/storage/media";
 import type { MemoryView } from "@/types";
 
 const TYPE_ICON = {
@@ -132,9 +132,12 @@ export function MemoryCard({
                 m.kind === "video" ? (
                   <video
                     key={m.id}
-                    src={m.url}
+                    src={playbackUrl(m)}
+                    poster={m.thumbKey ? displayUrl(m) : undefined}
                     controls
-                    preload="metadata"
+                    playsInline
+                    // With a poster nothing downloads until play is tapped.
+                    preload={m.thumbKey ? "none" : "metadata"}
                     className="w-full rounded-lg border border-line bg-ink/5"
                   />
                 ) : onViewImage ? (

@@ -1,3 +1,4 @@
+import { playbackUrl } from "@/lib/storage/media";
 import type { Collection, CollectionItem, MemoryView } from "@/types";
 import type { WrappedData } from "../useWrapped";
 
@@ -25,7 +26,7 @@ export function filmCandidates(year: number, memories: MemoryView[], collections
   for (const memory of memories.filter(m => m.occurredOn.startsWith(`${year}-`))) {
     const base = { title: memory.title || memory.body || "A moment to remember", label: `${monthLabel(memory.occurredOn)}${memory.milestone ? " · ★ Milestone" : ""}`, date: memory.occurredOn, priority: memory.milestone, start: 0 };
     for (const media of memory.media) {
-      scenes.push({ ...base, id: `media:${media.id}`, kind: media.kind, url: media.url, duration: media.kind === "video" ? 6 : 4 });
+      scenes.push({ ...base, id: `media:${media.id}`, kind: media.kind, url: media.kind === "video" ? playbackUrl(media) : media.url, duration: media.kind === "video" ? 6 : 4 });
     }
     if (memory.type === "quote" || (!memory.media.length && (memory.title || memory.body))) {
       scenes.push({ ...base, id: `memory:${memory.id}`, kind: "card", title: memory.type === "quote" ? `“${memory.body || memory.title}”` : base.title, label: memory.quoteAuthor || base.label, duration: 5 });
