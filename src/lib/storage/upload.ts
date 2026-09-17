@@ -7,7 +7,9 @@ export type UploadedMedia = Pick<
 
 const LOCAL_FALLBACK_LIMIT = 8 * 1024 * 1024; // 8 MB
 const MAX_IMAGE_EDGE = 1800;
-const THUMB_EDGE = 800;
+// Long edge for thumbnails/posters: cards can be ~650 CSS px wide on a
+// Retina desktop, so ~1300 device px are needed to look sharp.
+const THUMB_EDGE = 1600;
 
 const HEIC_EXT = /\.(heic|heif)$/i;
 

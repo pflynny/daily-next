@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   // and cache them (small) while redirecting originals straight to R2.
   const key =
     variant === "thumb"
-      ? `${user.id}/${year}/${newId()}-thumb.jpg`
+      ? `${user.id}/${year}/${newId()}-thumb-1600.jpg`
       : `${user.id}/${year}/${newId()}${ext ? `.${ext}` : ""}`;
 
   const presigned = await createPresignedUpload(key, contentType);

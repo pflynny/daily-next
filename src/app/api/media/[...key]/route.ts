@@ -28,7 +28,7 @@ export async function GET(
   // Thumbnails are small and immutable: stream them same-origin so the
   // browser and service worker can cache them (a cross-origin redirect
   // would be opaque to the service worker and never cached).
-  const isThumb = keyStr.endsWith("-thumb.jpg");
+  const isThumb = /-thumb(-\d+)?\.jpg$/.test(keyStr);
 
   // Send the browser directly to R2 for large media. The auth and ownership
   // checks above still run first, while the bytes no longer pass through

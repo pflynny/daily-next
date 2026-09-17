@@ -12,7 +12,10 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 config({ path: ".env" });
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+
+const POSTER_EDGE = 1600;
+const POSTER_SUFFIX = `-thumb-${POSTER_EDGE}.jpg`;
 import { createClient } from "@supabase/supabase-js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -41,14 +44,14 @@ const ffmpeg = (args: string[]) => run(ffmpegPath as string, ["-hide_banner", "-
 async function main() {
   const { data: rows, error } = await sb.from("memory_media").select("id, key, thumb_key, web_key, size").eq("kind", "video");
   if (error) throw error;
-  const todo = (rows ?? []).filter((r) => r.key && !r.key.startsWith("local:") && (!r.thumb_key || !r.web_key));
+  const todo = (rows ?? []).filter((r) => r.key && !r.key.startsWith("local:") && (!(r.thumb_key ?? "").endsWith(POSTER_SUFFIX) || !r.web_key));
   console.log(`${todo.length} videos need work${dry ? " (dry run)" : ""}`);
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daily-video-"));
   let done = 0, failed = 0;
   for (const r of todo) {
     const base = r.key.replace(/\.[^./]+$/, "");
     const name = r.key.split("/").pop();
-    if (dry) { console.log(`  would process ${name}: ${r.thumb_key ? "" : "poster "}${r.web_key ? "" : "rendition"}`); continue; }
+    if (dry) { console.log(`  would process ${name}: ${(r.thumb_key ?? "").endsWith(POSTER_SUFFIX) ? "" : "poster "}${r.web_key ? "" : "rendition"}`); continue; }
     const src = path.join(tmp, "src");
     try {
       process.stdout.write(`  ${name} (${(r.size / 1048576).toFixed(1)} MB): download… `);
@@ -56,13 +59,14 @@ async function main() {
       await fs.writeFile(src, Buffer.from(await obj.Body!.transformToByteArray()));
       const patch: Record<string, string> = {};
 
-      if (!r.thumb_key) {
+      if (!(r.thumb_key ?? "").endsWith(POSTER_SUFFIX)) {
         process.stdout.write("poster… ");
         const poster = path.join(tmp, "poster.jpg");
-        await ffmpeg(["-ss", "0.5", "-i", src, "-frames:v", "1", "-vf", "scale='min(800,iw)':-2", "-q:v", "4", poster]);
-        const thumbKey = `${base}-thumb.jpg`;
+        await ffmpeg(["-ss", "0.5", "-i", src, "-frames:v", "1", "-vf", `scale='min(${POSTER_EDGE},iw)':-2`, "-q:v", "4", poster]);
+        const thumbKey = `${base}${POSTER_SUFFIX}`;
         await s3.send(new PutObjectCommand({ Bucket: bucket, Key: thumbKey, Body: await fs.readFile(poster), ContentType: "image/jpeg" }));
         patch.thumb_key = thumbKey;
+        if (r.thumb_key) await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: r.thumb_key })).catch(() => {});
       }
 
       if (!r.web_key) {

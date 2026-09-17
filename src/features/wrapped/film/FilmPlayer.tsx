@@ -15,6 +15,23 @@ export function FilmPlayer({ scenes, portrait, music, motion }: { scenes: FilmSc
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [decodedFrame, setDecodedFrame] = useState(0);
+  // Backing-store size follows the on-screen size × pixel ratio (capped at
+  // 1920) — a fixed 640px canvas stretched to a Retina desktop was blurry.
+  const [res, setRes] = useState(640);
+  useEffect(() => {
+    const el = canvas.current;
+    if (!el) return;
+    const update = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cssLong = portrait ? el.clientHeight : el.clientWidth;
+      const next = Math.max(640, Math.min(1920, Math.round(cssLong * dpr / 64) * 64));
+      setRes((cur) => (cur === next ? cur : next));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [portrait]);
   const total = filmDuration(scenes);
   const running = playing && time < total;
   const current = sceneAt(scenes, time);
@@ -91,7 +108,7 @@ export function FilmPlayer({ scenes, portrait, music, motion }: { scenes: FilmSc
       if (Math.abs(audio.currentTime - time) > 0.4) audio.currentTime = Math.min(time, audio.duration);
       audio.volume = 0.8 * Math.max(0, Math.min(1, time, (Math.min(total, audio.duration) - time) / 2));
     }
-  }, [time, ready, scene, scenes, total, portrait, motion, decodedFrame, running]);
+  }, [time, ready, scene, scenes, total, portrait, motion, decodedFrame, running, res]);
 
   useEffect(() => {
     const pause = () => { if (document.hidden) setPlaying(false); };
@@ -100,7 +117,7 @@ export function FilmPlayer({ scenes, portrait, music, motion }: { scenes: FilmSc
   }, []);
 
   return <div ref={container} className="rounded-2xl bg-[#172e27] p-3 text-white">
-    <canvas ref={canvas} width={portrait ? 360 : 640} height={portrait ? 640 : 360} aria-label={scene ? `${scene.label}: ${scene.title}` : "Year film preview"} className={`mx-auto max-h-[55dvh] max-w-full ${portrait ? "aspect-[9/16]" : "aspect-video w-full"}`} />
+    <canvas ref={canvas} width={portrait ? Math.round(res * 9 / 16) : res} height={portrait ? res : Math.round(res * 9 / 16)} aria-label={scene ? `${scene.label}: ${scene.title}` : "Year film preview"} className={`mx-auto max-h-[55dvh] max-w-full ${portrait ? "aspect-[9/16]" : "aspect-video w-full"}`} />
     {!ready && !error && <p className="py-2 text-center text-sm" role="status">Loading scene…</p>}
     {error && <p className="py-2 text-sm text-amber-200" role="alert">{error}</p>}
     <div className="mt-3 flex items-center gap-3 text-sm">
